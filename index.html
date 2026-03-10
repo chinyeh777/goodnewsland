@@ -152,6 +152,7 @@
         let selectedMinutes = 35;
         let selectedTeamCount = 3;
         let soundEnabled = true;
+        let currentSecretDesc = ""; // 儲存秘密任務內容，避免引號衝突
 
         function selectTime(btn, mins) {
             document.querySelectorAll('#timeSelector .btn').forEach(b => b.classList.remove('selected'));
@@ -317,8 +318,21 @@
             }, 100);
         }
 
-        // --- 任務視窗與流程控制 ---
+        // --- 設置隨堂考內容 (獨立出來方便重選) ---
+        function setQuizContent() {
+            const qString = quizzes[Math.floor(Math.random() * quizzes.length)];
+            const [q, a] = qString.split('|');
+            document.getElementById('taskDesc').innerText = "【快問快答】\n" + q;
+            document.getElementById('taskAnswer').innerText = "正確答案：" + a;
+            document.getElementById('taskAnswer').style.display = 'none'; // 重選時隱藏答案
+            
+            document.getElementById('modalButtons').innerHTML = `
+                <button class="btn btn-outline" style="color:#ff6b6b; border-color:#ff6b6b;" onclick="setQuizContent()">🔄 換一題</button>
+                <button class="btn" style="background:#0984e3;" onclick="showAnswer()">💡 顯示答案</button>
+            `;
+        }
 
+        // --- 任務視窗與流程控制 ---
         function showTask(pos) {
             clearInterval(challengeTimer);
             document.getElementById('taskProgress').style.display = 'none';
@@ -342,7 +356,8 @@
                 
                 if (chal.type === "secret") {
                     desc = "⚠️ 注意！這題是秘密任務！\n請負責比動作的大人看螢幕，\n【所有小朋友請閉上眼睛或轉過頭！】";
-                    btnArea.innerHTML = `<button class="btn" style="background:#8e44ad;" onclick="revealSecret('${chal.desc}')">👀 小朋友閉眼了，顯示題目</button>`;
+                    currentSecretDesc = chal.desc; // 儲存到變數，避免傳入按鈕引發錯誤
+                    btnArea.innerHTML = `<button class="btn" style="background:#8e44ad;" onclick="revealSecret()">👀 小朋友閉眼了，顯示題目</button>`;
                 } else if (chal.type === "timer") {
                     desc = chal.desc;
                     btnArea.innerHTML = `<button class="btn" style="background:#ff9f43;" onclick="startChallengeTimer()">⏳ 開始 30 秒倒數</button>`;
@@ -356,14 +371,16 @@
                 }
             } 
             else {
-                // 隨堂考 (Q|A 格式)
-                const qString = quizzes[Math.floor(Math.random() * quizzes.length)];
-                const [q, a] = qString.split('|');
-                title = "📖 福音隨堂考"; desc = "【快問快答】\n" + q; color = "#ff6b6b";
-                document.getElementById('taskAnswer').innerText = "正確答案：" + a;
-                btnArea.innerHTML = `<button class="btn" style="background:#0984e3;" onclick="showAnswer()">💡 顯示答案</button>`;
+                // 隨堂考流程
+                title = "📖 福音隨堂考"; color = "#ff6b6b";
+                document.getElementById('taskTitle').innerText = title;
+                document.getElementById('taskTitle').style.color = color;
+                setQuizContent(); // 呼叫出題功能
+                document.getElementById('taskModal').style.display = 'flex';
+                return; // 這裡直接 return，因為 setQuizContent 已經把畫面處理好了
             }
 
+            // 更新畫面 (隨堂考以外的任務)
             document.getElementById('taskTitle').innerText = title;
             document.getElementById('taskTitle').style.color = color;
             document.getElementById('taskDesc').innerText = desc;
@@ -371,10 +388,11 @@
         }
 
         // 秘密任務流程
-        function revealSecret(realDesc) {
-            document.getElementById('taskDesc').innerText = realDesc;
+        function revealSecret() {
+            document.getElementById('taskDesc').innerText = currentSecretDesc;
             document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#e74c3c;" onclick="hideSecretAndStart()">🙈 記好了！隱藏題目並開始計時</button>`;
         }
+        
         function hideSecretAndStart() {
             document.getElementById('taskDesc').innerText = "【請小朋友張開眼睛猜題！】\n\n大人請開始比手畫腳～";
             document.getElementById('modalButtons').innerHTML = ""; // 隱藏按鈕，交給計時器顯示完成
@@ -384,6 +402,7 @@
         // 顯示答案
         function showAnswer() {
             document.getElementById('taskAnswer').style.display = 'block';
+            // 一旦看了答案，就把「換一題」的按鈕蓋掉，只留下「完成任務」
             document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#1dd1a1;" onclick="closeModal()">✅ 完成任務</button>`;
         }
 
