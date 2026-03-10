@@ -3,216 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天路歷程 - 家庭大富翁</title>
+    <title>福音世界-恩典大富翁 GoodNewsLand</title>
     <style>
-        /* 基礎全域設定：鮮豔、活潑的扁平化設計 */
+        /* 全域設定 */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f0f8ff;
             color: #333;
             text-align: center;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             overflow-x: hidden;
         }
 
-        h1, h2 { color: #2c3e50; }
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        .subtitle { color: #e17055; font-size: 20px; font-weight: bold; margin-top: 0; }
 
-        /* 按鈕共用樣式：巨大、圓潤、好按 */
         .btn {
-            background-color: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 24px;
-            border-radius: 50px;
-            cursor: pointer;
+            background-color: #ff6b6b; color: white; border: none; padding: 12px 24px;
+            font-size: 20px; border-radius: 50px; cursor: pointer;
             box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-            transition: transform 0.2s, background-color 0.2s;
-            margin: 10px;
+            transition: all 0.2s; margin: 10px;
         }
-        .btn:hover {
-            transform: scale(1.05);
-            background-color: #ff4757;
-        }
+        .btn:hover { transform: scale(1.05); background-color: #ff4757; }
         .btn:active { transform: scale(0.95); }
 
-        /* 遊戲區塊切換隱藏 */
         .screen { display: none; }
         .screen.active { display: block; animation: fadeIn 0.5s ease-in; }
-
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 倒數計時器 */
+        /* 計時器與狀態列 */
+        .header-bar {
+            display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 15px;
+        }
         #timer {
-            font-size: 40px;
-            font-weight: bold;
-            color: #e17055;
-            background: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            display: inline-block;
+            font-size: 30px; font-weight: bold; color: #d63031;
+            background: white; padding: 5px 15px; border-radius: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+        }
+        #turnIndicator { font-size: 24px; font-weight: bold; color: #0984e3; background: #ffeaa7; padding: 5px 15px; border-radius: 15px; }
+
+        /* 中間遊戲區塊：棋盤與骰子 */
+        .game-area {
+            display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap;
         }
 
-        /* 巨大骰子按鈕 */
-        #diceBtn {
-            font-size: 60px;
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            background-color: #1dd1a1;
-            box-shadow: 0 10px 20px rgba(29, 209, 161, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 30px auto;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        /* 隊伍狀態列 */
-        .teams-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
-        }
-        .team-card {
-            background: white;
-            padding: 15px;
+        /* 大富翁棋盤 (環狀格線) */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(6, 80px);
+            grid-template-rows: repeat(5, 80px);
+            gap: 5px;
+            background-color: #dfe6e9;
+            padding: 10px;
             border-radius: 15px;
-            min-width: 120px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border: 4px solid transparent;
-            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            position: relative;
         }
-        .team-card.active-team {
-            border-color: #ffda79;
-            transform: scale(1.1);
-            box-shadow: 0 8px 15px rgba(255, 218, 121, 0.6);
+        .tile {
+            background-color: white; border-radius: 10px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 14px; font-weight: bold; color: #636e72;
+            position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center; padding: 2px; line-height: 1.2;
+        }
+        /* 定義環狀路線：只顯示四周的格子，中間挖空 */
+        .tile[data-index="0"] { grid-column: 1; grid-row: 1; background: #ffeaa7; }
+        .tile[data-index="1"] { grid-column: 2; grid-row: 1; }
+        .tile[data-index="2"] { grid-column: 3; grid-row: 1; }
+        .tile[data-index="3"] { grid-column: 4; grid-row: 1; }
+        .tile[data-index="4"] { grid-column: 5; grid-row: 1; }
+        .tile[data-index="5"] { grid-column: 6; grid-row: 1; }
+        .tile[data-index="6"] { grid-column: 6; grid-row: 2; }
+        .tile[data-index="7"] { grid-column: 6; grid-row: 3; }
+        .tile[data-index="8"] { grid-column: 6; grid-row: 4; }
+        .tile[data-index="9"] { grid-column: 6; grid-row: 5; }
+        .tile[data-index="10"] { grid-column: 5; grid-row: 5; }
+        .tile[data-index="11"] { grid-column: 4; grid-row: 5; }
+        .tile[data-index="12"] { grid-column: 3; grid-row: 5; }
+        .tile[data-index="13"] { grid-column: 2; grid-row: 5; }
+        .tile[data-index="14"] { grid-column: 1; grid-row: 5; }
+        .tile[data-index="15"] { grid-column: 1; grid-row: 4; }
+        .tile[data-index="16"] { grid-column: 1; grid-row: 3; }
+        .tile[data-index="17"] { grid-column: 1; grid-row: 2; }
+        .tile:not([data-index]) { visibility: hidden; } /* 隱藏中間的格子 */
+
+        /* 玩家棋子 */
+        .token {
+            width: 20px; height: 20px; border-radius: 50%; position: absolute;
+            border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.5s ease-in-out; z-index: 10;
         }
 
-        /* 彈出任務視窗 (Modal) */
+        /* 巨大骰子 */
+        .dice-container {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #diceBtn {
+            font-size: 60px; width: 120px; height: 120px; border-radius: 20px;
+            background-color: #1dd1a1; box-shadow: 0 10px 20px rgba(29, 209, 161, 0.5);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border: none; color: white; animation: pulse 2s infinite;
+        }
+
+        /* 隊伍卡片 */
+        .teams-container { display: flex; justify-content: center; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .team-card {
+            background: white; padding: 10px 15px; border-radius: 15px; min-width: 100px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 4px solid transparent; transition: all 0.3s;
+        }
+        .team-card.active-team { border-color: #ffda79; transform: scale(1.1); box-shadow: 0 8px 15px rgba(255, 218, 121, 0.6); }
+
+        /* 彈出任務視窗 */
         .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000;
         }
         .modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            max-width: 600px;
-            width: 80%;
-            font-size: 24px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
-            text-align: center;
+            background: white; padding: 30px; border-radius: 20px; max-width: 600px; width: 90%;
+            font-size: 22px; text-align: center; position: relative;
         }
-        .task-title { font-size: 32px; font-weight: bold; margin-bottom: 15px; }
+        .task-title { font-size: 30px; font-weight: bold; margin-bottom: 10px; }
+        .task-desc { margin-bottom: 20px; min-height: 80px; display: flex; align-items: center; justify-content: center; flex-direction: column;}
         
-        /* 祝福經文卡片 */
-        .blessing-card {
-            background: #fff2cc;
-            padding: 20px;
-            margin: 15px auto;
-            border-radius: 15px;
-            border-left: 8px solid #f6b93b;
-            text-align: left;
-            max-width: 600px;
+        /* 挑戰倒數計時條 */
+        .progress-bar {
+            width: 100%; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; display: none; margin-bottom: 15px;
         }
+        .progress-fill { height: 100%; background: #1dd1a1; width: 100%; transition: width 1s linear, background-color 1s; }
+
+        .blessing-card { background: #fff2cc; padding: 15px; margin: 10px auto; border-radius: 10px; border-left: 8px solid #f6b93b; text-align: left; max-width: 600px; }
     </style>
 </head>
 <body>
 
     <div id="startScreen" class="screen active">
-        <h1 style="font-size: 48px; color: #ff6b6b;">🌟 天路歷程大富翁 🌟</h1>
-        <p style="font-size: 20px;">請選擇今天的聯合小隊數量：</p>
-        <button class="btn" onclick="startGame(3)">3 個小隊</button>
-        <button class="btn" style="background-color: #54a0ff;" onclick="startGame(4)">4 個小隊</button>
+        <h1 style="font-size: 50px; color: #ff6b6b; margin-top: 50px;">🎪 福音世界</h1>
+        <p class="subtitle">恩典大富翁 GoodNewsLand</p>
+        <p style="font-size: 20px; margin-top: 40px;">請選擇今天的聯合小隊數量：</p>
+        <div>
+            <button class="btn" style="background-color: #ff7675;" onclick="startGame(3)">3 隊</button>
+            <button class="btn" style="background-color: #74b9ff;" onclick="startGame(4)">4 隊</button>
+            <button class="btn" style="background-color: #55efc4;" onclick="startGame(5)">5 隊</button>
+            <button class="btn" style="background-color: #a29bfe;" onclick="startGame(6)">6 隊</button>
+        </div>
     </div>
 
     <div id="gameScreen" class="screen">
-        <div id="timer">35:00</div>
-        <h2 id="turnIndicator">現在輪到：準備開始</h2>
+        <div class="header-bar">
+            <div id="timer">35:00</div>
+            <div id="turnIndicator">準備開始</div>
+        </div>
         
-        <button id="diceBtn" class="btn" onclick="rollDice()">🎲</button>
-        <p style="color:#7f8c8d;">請點擊大骰子前進！</p>
-
-        <div class="teams-container" id="teamsContainer">
+        <div class="game-area">
+            <div class="board" id="board">
+                </div>
+            
+            <div class="dice-container">
+                <button id="diceBtn" onclick="rollDice()">🎲</button>
+                <p style="color:#7f8c8d; margin-top: 15px;">點擊骰子前進</p>
             </div>
+        </div>
+
+        <div class="teams-container" id="teamsContainer"></div>
     </div>
 
     <div id="endScreen" class="screen">
-        <h1 style="font-size: 48px; color: #1dd1a1;">🎉 時間到！美好的旅程 🎉</h1>
-        <p style="font-size: 24px;">每一個家庭都是神美好的創造，這是一路上給你們的祝福：</p>
-        <div id="blessingsContainer">
-            </div>
-        <button class="btn" onclick="location.reload()">再玩一次</button>
+        <h1 style="font-size: 48px; color: #1dd1a1;">🎉 美好的旅程 🎉</h1>
+        <p style="font-size: 20px;">每一個家庭都是神美好的創造，這是一路上給你們的祝福：</p>
+        <div id="blessingsContainer"></div>
+        <button class="btn" style="margin-top:20px;" onclick="location.reload()">再玩一次</button>
     </div>
 
     <div id="taskModal" class="modal">
         <div class="modal-content">
-            <div id="taskTitle" class="task-title">任務類型</div>
-            <div id="taskDesc">這裡是任務的詳細說明內容...</div>
-            <br><br>
-            <button class="btn" style="background-color: #1dd1a1;" onclick="closeModal()">✅ 我們完成了！</button>
+            <div id="taskTitle" class="task-title">任務</div>
+            <div id="taskDesc" class="task-desc">說明...</div>
+            <div class="progress-bar" id="taskProgress"><div class="progress-fill" id="taskProgressFill"></div></div>
+            <button class="btn" id="modalBtn" style="background-color: #1dd1a1;" onclick="closeModal()">✅ 完成任務</button>
+            <button class="btn" id="startChallengeBtn" style="background-color: #ff9f43; display:none;" onclick="startChallengeTimer()">⏳ 開始倒數30秒</button>
         </div>
     </div>
 
     <script>
-        // --- 遊戲資料與狀態設定 ---
+        // --- 音效系統 (Web Audio API) 無需外部檔案 ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(freq, type, duration, vol=0.1) {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playDiceSound() { playTone(600, 'square', 0.1); setTimeout(() => playTone(800, 'square', 0.1), 100); }
+        function playTickSound() { playTone(1000, 'sine', 0.05, 0.05); }
+        function playTadaSound() { 
+            playTone(440, 'triangle', 0.1); 
+            setTimeout(() => playTone(554, 'triangle', 0.1), 100); 
+            setTimeout(() => playTone(659, 'triangle', 0.4), 200); 
+        }
+        function playAlarmSound() { playTone(300, 'sawtooth', 0.5); }
+
+        // --- 遊戲資料 ---
         const teamColors = [
-            { name: "🔴 紅獅隊", color: "#ff7675" },
-            { name: "🔵 藍鴿隊", color: "#74b9ff" },
-            { name: "🟢 綠魚隊", color: "#55efc4" },
-            { name: "🟡 黃羊隊", color: "#ffeaa7" }
+            { name: "🔴 紅獅隊", color: "#ff7675" }, { name: "🔵 藍鴿隊", color: "#74b9ff" },
+            { name: "🟢 綠魚隊", color: "#55efc4" }, { name: "🟡 黃羊隊", color: "#ffeaa7" },
+            { name: "🟣 紫鷹隊", color: "#a29bfe" }, { name: "🟠 橘駝隊", color: "#fab1a0" }
         ];
         
         const blessingVerses = [
-            "🔴 紅獅隊：『你當剛強壯膽！不要懼怕，也不要驚惶；因為你無論往哪裡去，耶和華─你的神必與你同在。』 (約書亞記 1:9)",
-            "🔵 藍鴿隊：『應當一無掛慮，只要凡事藉著禱告、祈求，和感謝，將你們所要的告訴神。』 (腓立比書 4:6)",
-            "🟢 綠魚隊：『你們看那天上的飛鳥，也不種，也不收，也不積蓄在倉裡，你們的天父尚且養活牠。』 (馬太福音 6:26)",
-            "🟡 黃羊隊：『耶和華是我的牧者，我必不致缺乏。』 (詩篇 23:1)"
+            "『你當剛強壯膽！不要懼怕。』 (約 1:9)", "『應當一無掛慮，凡事藉著禱告祈求。』 (腓 4:6)",
+            "『你們看那天上的飛鳥，天父尚且養活。』 (太 6:26)", "『耶和華是我的牧者，我必不致缺乏。』 (詩 23:1)",
+            "『神賜給我們，不是膽怯的心，乃是剛強、仁愛、謹守的心。』 (提後 1:7)", "『喜樂的心乃是良藥。』 (箴 17:22)"
         ];
 
-        // 任務庫 (先放幾個示範，之後可以把50題加進來)
-        const taskTypes = [
-            { type: "📖 福音隨堂考", desc: "耶穌用什麼食物餵飽了五千人？\n(提示：_個餅、_條魚)", color: "#ff6b6b" },
-            { type: "💪 靠主剛強", desc: "全家起立！請大人把小孩飛高高（或擁抱），並大聲說：『耶穌愛你！』", color: "#54a0ff" },
-            { type: "✨ 奇蹟時刻", desc: "派一位大人分享：這週上帝給我們家的一個小驚喜（限時1分鐘）。", color: "#feca57" }
+        // 50 題福音隨堂考
+        const quizzes = [
+            "耶穌降生在哪個城市？ (伯利恆)", "耶穌降生時被放在哪裡？ (馬槽)", "耶穌在世上的父母叫什麼名字？ (約瑟和馬利亞)",
+            "耶穌用什麼食物餵飽了五千人？ (五餅二魚)", "耶穌在水面上行走時，哪位門徒也試著走？ (彼得)", "耶穌有幾個核心門徒？ (12個)",
+            "誰出賣了耶穌？ (猶大)", "耶穌死後第幾天復活？ (第三天)", "耶穌的職業本來是什麼？ (木匠)", "東方博士送給耶穌哪三樣禮物？ (黃金、乳香、沒藥)",
+            "耶穌把水變成了什麼？ (酒)", "誰爬上桑樹只為了看耶穌一眼？ (撒該)", "耶穌進耶路撒冷時，騎著什麼動物？ (驢駒)",
+            "耶穌常常用什麼方式講道？ (比喻)", "耶穌說讓什麼樣的人到他這裡來，不要禁止他們？ (小孩子)", "耶穌在哪個海邊平靜了風浪？ (加利利海)",
+            "耶穌醫治了十個長大痲瘋的人，有幾個回來道謝？ (1個)", "誰為耶穌施洗？ (施洗約翰)", "瞎子巴底買大聲呼求耶穌，他求什麼？ (能看見)",
+            "耶穌被釘在哪裡為我們贖罪？ (十字架)", "聖經中有哪四卷福音書？ (馬太、馬可、路加、約翰)", "耶穌在曠野禁食幾天？ (40天)",
+            "主禱文的第一句話是什麼？ (我們在天上的父)", "耶穌行的第一個神蹟在哪個場合？ (迦拿的娶親筵席)", "浪子回頭的比喻中，小兒子去遠方做什麼工作？ (放豬)",
+            "哪一位門徒曾經三次不認主？ (彼得)", "誰在夜裡來見耶穌，詢問重生的事？ (尼哥底母)", "耶穌在哪裡和撒馬利亞婦人要水喝？ (雅各井旁)",
+            "哪位門徒說非要摸到耶穌的釘痕才相信？ (多馬)", "耶穌使哪一位死了四天的好朋友從死裡復活？ (拉撒路)", "撒種的比喻中，只有落在哪裡的種子結出百倍果實？ (好土裡)",
+            "耶穌呼召彼得時，說要讓他們得人如得什麼一樣？ (得魚)", "好撒馬利亞人的比喻中，誰先路過卻沒有幫忙？ (祭司/利未人)", "耶穌登山變像時，哪兩位先知顯現？ (摩西、以利亞)",
+            "施洗約翰在曠野吃什麼度日？ (蝗蟲、野蜜)", "十個童女的比喻中，聰明的童女預備了什麼？ (油)", "耶穌說自己是道路、真理，還加上什麼？ (生命)",
+            "路加福音的作者路加，他的職業是什麼？ (醫生)", "患血漏的婦人病了幾年得醫治？ (12年)", "耶穌升天前，應許會賜下什麼保惠師給門徒？ (聖靈)",
+            "「凡勞苦擔重擔的人可以到我這裡來」出自哪卷福音書？ (馬太福音)", "耶穌在十字架上說的最後一句話是什麼？ (成了)", "財主死後在哪裡受苦？ (陰間)",
+            "耶穌為門徒洗腳，是發生在哪個場合？ (最後的晚餐)", "耶穌預言聖殿將被毀時，說沒有一塊石頭會留在哪裡？ (石頭上)", "耶穌復活後，最先向誰顯現？ (抹大拉的馬利亞)",
+            "最大的誡命是愛主，其次是愛誰如同自己？ (愛人如己)", "哪一卷福音書不屬於「對觀福音」？ (約翰福音)", "耶穌在客西馬尼園禱告時，汗珠如什麼掉在地上？ (大血點)",
+            "耶穌交給門徒的大使命，要使萬民作誰的門徒？ (耶穌的門徒)"
         ];
 
+        // 靠主剛強挑戰
+        const challenges = [
+            { type: "challenge", name: "💪 靠主剛強：登山寶訓", desc: "【填空題 - 30秒挑戰】\n虛心的人有福了！因為____是他們的。\n清心的人有福了！因為他們必得見____。", hasTimer: true },
+            { type: "challenge", name: "💪 靠主剛強：主禱文", desc: "【背誦題 - 30秒挑戰】\n請派一位代表（或全家一起），在30秒內背誦出完整的主禱文！", hasTimer: true },
+            { type: "challenge", name: "💪 靠主剛強：讚美耶穌", desc: "【唱歌題 - 全家動員】\n請全家起立，手牽手一起唱一首你們最喜歡的兒童詩歌或短歌！", hasTimer: false },
+            { type: "challenge", name: "💪 靠主剛強：聖經比手畫腳", desc: "【猜謎題 - 30秒挑戰】\n大人比動作，小孩猜！\n題目：五餅二魚 或 挪亞方舟", hasTimer: true }
+        ];
+
+        const boardSize = 18; // 總共 18 格 (0~17)
         let currentTeams = [];
         let currentTurnIndex = 0;
+        let totalTime = 35 * 60; // 35分鐘
         let timerInterval;
-        let totalTime = 35 * 60; // 35分鐘轉換為秒
+        let challengeTimer;
 
-        // --- 遊戲邏輯函數 ---
+        // --- 初始化與繪製 ---
 
         function startGame(teamCount) {
-            // 初始化隊伍
-            currentTeams = teamColors.slice(0, teamCount).map(t => ({ ...t, steps: 0 }));
+            initAudio(); // 啟動音效權限
+            currentTeams = teamColors.slice(0, teamCount).map((t, i) => ({ ...t, id: i, pos: 0, steps: 0 }));
             
-            // 切換畫面
             document.getElementById('startScreen').classList.remove('active');
             document.getElementById('gameScreen').classList.add('active');
             
-            // 繪製隊伍卡片
+            createBoard();
             renderTeams();
+            updateBoardTokens();
             updateTurnIndicator();
-            
-            // 啟動倒數計時
             startTimer();
+        }
+
+        function createBoard() {
+            const board = document.getElementById('board');
+            // 產生格子並補上裝飾文字
+            for (let i = 0; i < boardSize; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.setAttribute('data-index', i);
+                
+                if (i === 0) tile.innerHTML = "🏁<br>起點";
+                else if (i % 4 === 0) tile.innerHTML = "✨<br>奇蹟";
+                else if (i % 3 === 0) tile.innerHTML = "💪<br>剛強";
+                else tile.innerHTML = "📖<br>隨堂考";
+                
+                board.appendChild(tile);
+            }
         }
 
         function renderTeams() {
@@ -227,77 +311,158 @@
             });
         }
 
+        function updateBoardTokens() {
+            // 清除舊棋子
+            document.querySelectorAll('.token').forEach(e => e.remove());
+            
+            // 放置新棋子
+            currentTeams.forEach((team) => {
+                const tile = document.querySelector(`.tile[data-index="${team.pos}"]`);
+                if(tile) {
+                    const token = document.createElement('div');
+                    token.className = 'token';
+                    token.style.backgroundColor = team.color;
+                    // 微調位置避免重疊
+                    const offset = team.id * 5;
+                    token.style.transform = `translate(${offset - 10}px, ${offset - 10}px)`;
+                    tile.appendChild(token);
+                }
+            });
+        }
+
+        // --- 遊戲邏輯 ---
+
         function updateTurnIndicator() {
             const indicator = document.getElementById('turnIndicator');
-            indicator.innerText = `現在輪到：${currentTeams[currentTurnIndex].name}！`;
+            indicator.innerText = `現在輪到：${currentTeams[currentTurnIndex].name}`;
+            indicator.style.backgroundColor = currentTeams[currentTurnIndex].color;
+            indicator.style.color = "#333";
         }
 
         function rollDice() {
-            const steps = Math.floor(Math.random() * 6) + 1;
-            currentTeams[currentTurnIndex].steps += steps;
+            const btn = document.getElementById('diceBtn');
+            btn.disabled = true;
             
-            // 骰子動畫效果 (簡單替換文字)
-            const diceBtn = document.getElementById('diceBtn');
-            diceBtn.innerText = steps;
-            
-            setTimeout(() => {
-                diceBtn.innerText = '🎲';
-                showTask(steps);
-            }, 800);
+            // 骰子動畫與音效
+            let counter = 0;
+            const rollAnim = setInterval(() => {
+                btn.innerText = Math.floor(Math.random() * 6) + 1;
+                playDiceSound();
+                counter++;
+                if(counter > 10) {
+                    clearInterval(rollAnim);
+                    const steps = Math.floor(Math.random() * 6) + 1;
+                    btn.innerText = steps;
+                    
+                    // 移動隊伍
+                    const team = currentTeams[currentTurnIndex];
+                    team.steps += steps;
+                    team.pos = (team.pos + steps) % boardSize;
+                    
+                    updateBoardTokens();
+                    
+                    setTimeout(() => {
+                        btn.innerText = '🎲';
+                        btn.disabled = false;
+                        showTask(team.pos);
+                    }, 1000);
+                }
+            }, 100);
         }
 
-        function showTask(steps) {
-            // 隨機抽一個任務
-            const randomTask = taskTypes[Math.floor(Math.random() * taskTypes.length)];
+        function showTask(pos) {
+            clearInterval(challengeTimer); // 清除可能殘留的計時器
+            document.getElementById('taskProgress').style.display = 'none';
+            document.getElementById('startChallengeBtn').style.display = 'none';
             
-            document.getElementById('taskTitle').innerText = randomTask.type;
-            document.getElementById('taskTitle').style.color = randomTask.color;
-            document.getElementById('taskDesc').innerText = `【前進了 ${steps} 步！】\n\n` + randomTask.desc;
+            let title = "", desc = "", color = "";
+            let hasTimer = false;
+
+            // 根據格子決定任務類型
+            if (pos === 0) {
+                title = "🎉 休息一下"; desc = "平安抵達起點，享受安息日！"; color = "#ffeaa7";
+            } else if (pos % 4 === 0) {
+                title = "✨ 奇蹟時刻"; 
+                desc = "【溫馨見證】請派一位代表分享：本週上帝給我們家的一個小驚喜（限時1分鐘）。"; 
+                color = "#feca57";
+            } else if (pos % 3 === 0) {
+                // 靠主剛強
+                const chal = challenges[Math.floor(Math.random() * challenges.length)];
+                title = chal.name; desc = chal.desc; color = "#54a0ff"; hasTimer = chal.hasTimer;
+            } else {
+                // 福音隨堂考
+                const q = quizzes[Math.floor(Math.random() * quizzes.length)];
+                title = "📖 福音隨堂考"; desc = "【快問快答】\n" + q; color = "#ff6b6b";
+            }
+
+            document.getElementById('taskTitle').innerText = title;
+            document.getElementById('taskTitle').style.color = color;
+            document.getElementById('taskDesc').innerText = desc;
             
+            if (hasTimer) {
+                document.getElementById('startChallengeBtn').style.display = 'inline-block';
+            }
+
             document.getElementById('taskModal').style.display = 'flex';
         }
 
+        function startChallengeTimer() {
+            document.getElementById('startChallengeBtn').style.display = 'none';
+            const bar = document.getElementById('taskProgress');
+            const fill = document.getElementById('taskProgressFill');
+            bar.style.display = 'block';
+            
+            let timeLeft = 30;
+            fill.style.width = '100%';
+            fill.style.backgroundColor = '#1dd1a1';
+
+            challengeTimer = setInterval(() => {
+                timeLeft--;
+                fill.style.width = `${(timeLeft / 30) * 100}%`;
+                
+                if (timeLeft <= 10) fill.style.backgroundColor = '#ff7675';
+                if (timeLeft > 0 && timeLeft <= 5) playTickSound(); // 最後5秒滴答聲
+                
+                if (timeLeft <= 0) {
+                    clearInterval(challengeTimer);
+                    playAlarmSound();
+                    document.getElementById('taskDesc').innerText += "\n\n⏰ 時間到！";
+                }
+            }, 1000);
+        }
+
         function closeModal() {
+            clearInterval(challengeTimer);
             document.getElementById('taskModal').style.display = 'none';
-            // 換下一隊
+            playTadaSound(); // 過關音效
+            
             currentTurnIndex = (currentTurnIndex + 1) % currentTeams.length;
             renderTeams();
             updateTurnIndicator();
         }
 
+        // --- 全局計時器 ---
         function startTimer() {
             timerInterval = setInterval(() => {
                 totalTime--;
-                let minutes = Math.floor(totalTime / 60);
-                let seconds = totalTime % 60;
-                
-                // 補零
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
-                
-                document.getElementById('timer').innerText = `${minutes}:${seconds}`;
+                let m = Math.floor(totalTime / 60); let s = totalTime % 60;
+                document.getElementById('timer').innerText = `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
                 
                 if (totalTime <= 0) {
-                    endGame();
+                    clearInterval(timerInterval);
+                    document.getElementById('gameScreen').classList.remove('active');
+                    document.getElementById('taskModal').style.display = 'none';
+                    document.getElementById('endScreen').classList.add('active');
+                    
+                    const container = document.getElementById('blessingsContainer');
+                    currentTeams.forEach((team, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'blessing-card';
+                        card.innerHTML = `<strong>${team.name} 【共前進了 ${team.steps} 步】</strong><br><br>${blessingVerses[index]}`;
+                        container.appendChild(card);
+                    });
                 }
-            }, 1000); // 每 1000 毫秒 (1秒) 更新一次
-        }
-
-        function endGame() {
-            clearInterval(timerInterval);
-            document.getElementById('gameScreen').classList.remove('active');
-            document.getElementById('taskModal').style.display = 'none'; // 關閉可能開著的任務
-            document.getElementById('endScreen').classList.add('active');
-            
-            // 顯示祝福經文
-            const container = document.getElementById('blessingsContainer');
-            container.innerHTML = '';
-            currentTeams.forEach((team, index) => {
-                const card = document.createElement('div');
-                card.className = 'blessing-card';
-                card.innerHTML = `<strong>【共走了 ${team.steps} 步】</strong><br><br>${blessingVerses[index]}`;
-                container.appendChild(card);
-            });
+            }, 1000);
         }
     </script>
 </body>
