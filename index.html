@@ -152,7 +152,7 @@
         let selectedMinutes = 35;
         let selectedTeamCount = 3;
         let soundEnabled = true;
-        let currentSecretDesc = ""; // 儲存秘密任務內容，避免引號衝突
+        let currentSecretDesc = ""; // 儲存秘密任務內容
 
         function selectTime(btn, mins) {
             document.querySelectorAll('#timeSelector .btn').forEach(b => b.classList.remove('selected'));
@@ -209,7 +209,6 @@
             "『神賜給我們，不是膽怯的心，乃是剛強、仁愛、謹守的心。』 (提後 1:7)", "『喜樂的心乃是良藥。』 (箴 17:22)"
         ];
 
-        // 題庫改為 "題目|答案" 格式
         const quizzes = [
             "耶穌降生在哪個城市？|伯利恆", "耶穌降生時被放在哪裡？|馬槽", "耶穌在世上的父母叫什麼名字？|約瑟和馬利亞",
             "耶穌用什麼食物餵飽了五千人？|五個餅、兩條魚", "耶穌在水面上行走時，哪位門徒也試著走？|彼得", "耶穌有幾個核心門徒？|12個",
@@ -318,18 +317,50 @@
             }, 100);
         }
 
-        // --- 設置隨堂考內容 (獨立出來方便重選) ---
+        // --- 設置隨堂考內容 ---
         function setQuizContent() {
             const qString = quizzes[Math.floor(Math.random() * quizzes.length)];
             const [q, a] = qString.split('|');
             document.getElementById('taskDesc').innerText = "【快問快答】\n" + q;
             document.getElementById('taskAnswer').innerText = "正確答案：" + a;
-            document.getElementById('taskAnswer').style.display = 'none'; // 重選時隱藏答案
+            document.getElementById('taskAnswer').style.display = 'none';
             
             document.getElementById('modalButtons').innerHTML = `
                 <button class="btn btn-outline" style="color:#ff6b6b; border-color:#ff6b6b;" onclick="setQuizContent()">🔄 換一題</button>
                 <button class="btn" style="background:#0984e3;" onclick="showAnswer()">💡 顯示答案</button>
             `;
+        }
+
+        // --- 設置靠主剛強內容 (加入換一題機制) ---
+        function setChallengeContent() {
+            const chal = challenges[Math.floor(Math.random() * challenges.length)];
+            const btnArea = document.getElementById('modalButtons');
+            
+            document.getElementById('taskTitle').innerText = chal.name;
+            document.getElementById('taskTitle').style.color = "#54a0ff";
+            document.getElementById('taskAnswer').style.display = 'none';
+            
+            let desc = "";
+            let btnHTML = `<button class="btn btn-outline" style="color:#0984e3; border-color:#0984e3;" onclick="setChallengeContent()">🔄 換一題</button>`;
+
+            if (chal.type === "secret") {
+                desc = "⚠️ 注意！這題是秘密任務！\n請負責比動作的大人看螢幕，\n【所有小朋友請閉上眼睛或轉過頭！】";
+                currentSecretDesc = chal.desc; 
+                btnHTML += `<button class="btn" style="background:#8e44ad;" onclick="revealSecret()">👀 小朋友閉眼了，顯示題目</button>`;
+            } else if (chal.type === "timer") {
+                desc = chal.desc;
+                btnHTML += `<button class="btn" style="background:#ff9f43;" onclick="startChallengeTimer()">⏳ 開始 30 秒倒數</button>`;
+                if(chal.answer) {
+                    document.getElementById('taskAnswer').innerText = "答案：" + chal.answer;
+                    btnHTML += `<button class="btn btn-outline" onclick="showAnswer()">💡 顯示解答</button>`;
+                }
+            } else {
+                desc = chal.desc;
+                btnHTML += `<button class="btn" onclick="closeModal()">✅ 完成</button>`;
+            }
+
+            document.getElementById('taskDesc').innerText = desc;
+            btnArea.innerHTML = btnHTML;
         }
 
         // --- 任務視窗與流程控制 ---
@@ -340,51 +371,30 @@
             const btnArea = document.getElementById('modalButtons');
             btnArea.innerHTML = '';
             
-            let title = "", desc = "", color = "";
-
             if (pos === 0) {
-                title = "🎉 休息一下"; desc = "平安抵達起點，享受安息日！"; color = "#f39c12";
+                document.getElementById('taskTitle').innerText = "🎉 休息一下";
+                document.getElementById('taskTitle').style.color = "#f39c12";
+                document.getElementById('taskDesc').innerText = "平安抵達起點，享受安息日！";
                 btnArea.innerHTML = `<button class="btn" onclick="closeModal()">✅ 完成</button>`;
+                document.getElementById('taskModal').style.display = 'flex';
             } 
             else if (pos % 4 === 0) {
-                title = "✨ 奇蹟時刻"; desc = "【溫馨見證】派代表分享：本週上帝給我們家的一個小驚喜（限時1分鐘）。"; color = "#feca57";
+                document.getElementById('taskTitle').innerText = "✨ 奇蹟時刻";
+                document.getElementById('taskTitle').style.color = "#feca57";
+                document.getElementById('taskDesc').innerText = "【溫馨見證】派代表分享：本週上帝給我們家的一個小驚喜（限時1分鐘）。";
                 btnArea.innerHTML = `<button class="btn" onclick="closeModal()">✅ 完成分享</button>`;
+                document.getElementById('taskModal').style.display = 'flex';
             } 
             else if (pos % 3 === 0) {
-                const chal = challenges[Math.floor(Math.random() * challenges.length)];
-                title = chal.name; color = "#54a0ff";
-                
-                if (chal.type === "secret") {
-                    desc = "⚠️ 注意！這題是秘密任務！\n請負責比動作的大人看螢幕，\n【所有小朋友請閉上眼睛或轉過頭！】";
-                    currentSecretDesc = chal.desc; // 儲存到變數，避免傳入按鈕引發錯誤
-                    btnArea.innerHTML = `<button class="btn" style="background:#8e44ad;" onclick="revealSecret()">👀 小朋友閉眼了，顯示題目</button>`;
-                } else if (chal.type === "timer") {
-                    desc = chal.desc;
-                    btnArea.innerHTML = `<button class="btn" style="background:#ff9f43;" onclick="startChallengeTimer()">⏳ 開始 30 秒倒數</button>`;
-                    if(chal.answer) {
-                        document.getElementById('taskAnswer').innerText = "答案：" + chal.answer;
-                        btnArea.innerHTML += `<button class="btn btn-outline" onclick="showAnswer()">💡 顯示解答</button>`;
-                    }
-                } else {
-                    desc = chal.desc;
-                    btnArea.innerHTML = `<button class="btn" onclick="closeModal()">✅ 完成</button>`;
-                }
+                setChallengeContent(); // 呼叫出題功能
+                document.getElementById('taskModal').style.display = 'flex';
             } 
             else {
-                // 隨堂考流程
-                title = "📖 福音隨堂考"; color = "#ff6b6b";
-                document.getElementById('taskTitle').innerText = title;
-                document.getElementById('taskTitle').style.color = color;
+                document.getElementById('taskTitle').innerText = "📖 福音隨堂考";
+                document.getElementById('taskTitle').style.color = "#ff6b6b";
                 setQuizContent(); // 呼叫出題功能
                 document.getElementById('taskModal').style.display = 'flex';
-                return; // 這裡直接 return，因為 setQuizContent 已經把畫面處理好了
             }
-
-            // 更新畫面 (隨堂考以外的任務)
-            document.getElementById('taskTitle').innerText = title;
-            document.getElementById('taskTitle').style.color = color;
-            document.getElementById('taskDesc').innerText = desc;
-            document.getElementById('taskModal').style.display = 'flex';
         }
 
         // 秘密任務流程
@@ -395,14 +405,13 @@
         
         function hideSecretAndStart() {
             document.getElementById('taskDesc').innerText = "【請小朋友張開眼睛猜題！】\n\n大人請開始比手畫腳～";
-            document.getElementById('modalButtons').innerHTML = ""; // 隱藏按鈕，交給計時器顯示完成
+            document.getElementById('modalButtons').innerHTML = ""; // 交給計時器顯示完成
             startChallengeTimer();
         }
 
         // 顯示答案
         function showAnswer() {
             document.getElementById('taskAnswer').style.display = 'block';
-            // 一旦看了答案，就把「換一題」的按鈕蓋掉，只留下「完成任務」
             document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#1dd1a1;" onclick="closeModal()">✅ 完成任務</button>`;
         }
 
@@ -412,8 +421,12 @@
             const fill = document.getElementById('taskProgressFill');
             const btnArea = document.getElementById('modalButtons');
             
-            // 隱藏原本的開始按鈕
-            Array.from(btnArea.children).forEach(btn => { if(btn.innerText.includes('倒數')) btn.style.display = 'none'; });
+            // 隱藏原本的開始按鈕與換一題按鈕
+            Array.from(btnArea.children).forEach(btn => { 
+                if(btn.innerText.includes('倒數') || btn.innerText.includes('換一題')) {
+                    btn.style.display = 'none'; 
+                }
+            });
             
             bar.style.display = 'block';
             let timeLeft = 30;
@@ -430,7 +443,6 @@
                     clearInterval(challengeTimer);
                     playAlarmSound();
                     document.getElementById('taskDesc').innerText += "\n\n⏰ 時間到！";
-                    // 確保時間到後可以關閉視窗
                     if(!btnArea.innerHTML.includes('完成')) {
                         btnArea.innerHTML += `<button class="btn" style="background:#1dd1a1; margin-top:10px;" onclick="closeModal()">✅ 結算完成</button>`;
                     }
