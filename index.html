@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天路歷程 - 家庭大富翁</title>
+    <style>
+        /* 基礎全域設定：鮮豔、活潑的扁平化設計 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        h1, h2 { color: #2c3e50; }
+
+        /* 按鈕共用樣式：巨大、圓潤、好按 */
+        .btn {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+            transition: transform 0.2s, background-color 0.2s;
+            margin: 10px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            background-color: #ff4757;
+        }
+        .btn:active { transform: scale(0.95); }
+
+        /* 遊戲區塊切換隱藏 */
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.5s ease-in; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 倒數計時器 */
+        #timer {
+            font-size: 40px;
+            font-weight: bold;
+            color: #e17055;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        /* 巨大骰子按鈕 */
+        #diceBtn {
+            font-size: 60px;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: #1dd1a1;
+            box-shadow: 0 10px 20px rgba(29, 209, 161, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px auto;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* 隊伍狀態列 */
+        .teams-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .team-card {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            min-width: 120px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 4px solid transparent;
+            transition: all 0.3s;
+        }
+        .team-card.active-team {
+            border-color: #ffda79;
+            transform: scale(1.1);
+            box-shadow: 0 8px 15px rgba(255, 218, 121, 0.6);
+        }
+
+        /* 彈出任務視窗 (Modal) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 80%;
+            font-size: 24px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .task-title { font-size: 32px; font-weight: bold; margin-bottom: 15px; }
+        
+        /* 祝福經文卡片 */
+        .blessing-card {
+            background: #fff2cc;
+            padding: 20px;
+            margin: 15px auto;
+            border-radius: 15px;
+            border-left: 8px solid #f6b93b;
+            text-align: left;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="startScreen" class="screen active">
+        <h1 style="font-size: 48px; color: #ff6b6b;">🌟 天路歷程大富翁 🌟</h1>
+        <p style="font-size: 20px;">請選擇今天的聯合小隊數量：</p>
+        <button class="btn" onclick="startGame(3)">3 個小隊</button>
+        <button class="btn" style="background-color: #54a0ff;" onclick="startGame(4)">4 個小隊</button>
+    </div>
+
+    <div id="gameScreen" class="screen">
+        <div id="timer">35:00</div>
+        <h2 id="turnIndicator">現在輪到：準備開始</h2>
+        
+        <button id="diceBtn" class="btn" onclick="rollDice()">🎲</button>
+        <p style="color:#7f8c8d;">請點擊大骰子前進！</p>
+
+        <div class="teams-container" id="teamsContainer">
+            </div>
+    </div>
+
+    <div id="endScreen" class="screen">
+        <h1 style="font-size: 48px; color: #1dd1a1;">🎉 時間到！美好的旅程 🎉</h1>
+        <p style="font-size: 24px;">每一個家庭都是神美好的創造，這是一路上給你們的祝福：</p>
+        <div id="blessingsContainer">
+            </div>
+        <button class="btn" onclick="location.reload()">再玩一次</button>
+    </div>
+
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div id="taskTitle" class="task-title">任務類型</div>
+            <div id="taskDesc">這裡是任務的詳細說明內容...</div>
+            <br><br>
+            <button class="btn" style="background-color: #1dd1a1;" onclick="closeModal()">✅ 我們完成了！</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲資料與狀態設定 ---
+        const teamColors = [
+            { name: "🔴 紅獅隊", color: "#ff7675" },
+            { name: "🔵 藍鴿隊", color: "#74b9ff" },
+            { name: "🟢 綠魚隊", color: "#55efc4" },
+            { name: "🟡 黃羊隊", color: "#ffeaa7" }
+        ];
+        
+        const blessingVerses = [
+            "🔴 紅獅隊：『你當剛強壯膽！不要懼怕，也不要驚惶；因為你無論往哪裡去，耶和華─你的神必與你同在。』 (約書亞記 1:9)",
+            "🔵 藍鴿隊：『應當一無掛慮，只要凡事藉著禱告、祈求，和感謝，將你們所要的告訴神。』 (腓立比書 4:6)",
+            "🟢 綠魚隊：『你們看那天上的飛鳥，也不種，也不收，也不積蓄在倉裡，你們的天父尚且養活牠。』 (馬太福音 6:26)",
+            "🟡 黃羊隊：『耶和華是我的牧者，我必不致缺乏。』 (詩篇 23:1)"
+        ];
+
+        // 任務庫 (先放幾個示範，之後可以把50題加進來)
+        const taskTypes = [
+            { type: "📖 福音隨堂考", desc: "耶穌用什麼食物餵飽了五千人？\n(提示：_個餅、_條魚)", color: "#ff6b6b" },
+            { type: "💪 靠主剛強", desc: "全家起立！請大人把小孩飛高高（或擁抱），並大聲說：『耶穌愛你！』", color: "#54a0ff" },
+            { type: "✨ 奇蹟時刻", desc: "派一位大人分享：這週上帝給我們家的一個小驚喜（限時1分鐘）。", color: "#feca57" }
+        ];
+
+        let currentTeams = [];
+        let currentTurnIndex = 0;
+        let timerInterval;
+        let totalTime = 35 * 60; // 35分鐘轉換為秒
+
+        // --- 遊戲邏輯函數 ---
+
+        function startGame(teamCount) {
+            // 初始化隊伍
+            currentTeams = teamColors.slice(0, teamCount).map(t => ({ ...t, steps: 0 }));
+            
+            // 切換畫面
+            document.getElementById('startScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            
+            // 繪製隊伍卡片
+            renderTeams();
+            updateTurnIndicator();
+            
+            // 啟動倒數計時
+            startTimer();
+        }
+
+        function renderTeams() {
+            const container = document.getElementById('teamsContainer');
+            container.innerHTML = '';
+            currentTeams.forEach((team, index) => {
+                const card = document.createElement('div');
+                card.className = `team-card ${index === currentTurnIndex ? 'active-team' : ''}`;
+                card.style.backgroundColor = team.color;
+                card.innerHTML = `<h3>${team.name}</h3><p>歷程：${team.steps} 步</p>`;
+                container.appendChild(card);
+            });
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('turnIndicator');
+            indicator.innerText = `現在輪到：${currentTeams[currentTurnIndex].name}！`;
+        }
+
+        function rollDice() {
+            const steps = Math.floor(Math.random() * 6) + 1;
+            currentTeams[currentTurnIndex].steps += steps;
+            
+            // 骰子動畫效果 (簡單替換文字)
+            const diceBtn = document.getElementById('diceBtn');
+            diceBtn.innerText = steps;
+            
+            setTimeout(() => {
+                diceBtn.innerText = '🎲';
+                showTask(steps);
+            }, 800);
+        }
+
+        function showTask(steps) {
+            // 隨機抽一個任務
+            const randomTask = taskTypes[Math.floor(Math.random() * taskTypes.length)];
+            
+            document.getElementById('taskTitle').innerText = randomTask.type;
+            document.getElementById('taskTitle').style.color = randomTask.color;
+            document.getElementById('taskDesc').innerText = `【前進了 ${steps} 步！】\n\n` + randomTask.desc;
+            
+            document.getElementById('taskModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').style.display = 'none';
+            // 換下一隊
+            currentTurnIndex = (currentTurnIndex + 1) % currentTeams.length;
+            renderTeams();
+            updateTurnIndicator();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                totalTime--;
+                let minutes = Math.floor(totalTime / 60);
+                let seconds = totalTime % 60;
+                
+                // 補零
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                
+                document.getElementById('timer').innerText = `${minutes}:${seconds}`;
+                
+                if (totalTime <= 0) {
+                    endGame();
+                }
+            }, 1000); // 每 1000 毫秒 (1秒) 更新一次
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('taskModal').style.display = 'none'; // 關閉可能開著的任務
+            document.getElementById('endScreen').classList.add('active');
+            
+            // 顯示祝福經文
+            const container = document.getElementById('blessingsContainer');
+            container.innerHTML = '';
+            currentTeams.forEach((team, index) => {
+                const card = document.createElement('div');
+                card.className = 'blessing-card';
+                card.innerHTML = `<strong>【共走了 ${team.steps} 步】</strong><br><br>${blessingVerses[index]}`;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
