@@ -9,12 +9,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-        /* 全域設定 */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f8ff; color: #333; text-align: center; margin: 0; padding: 10px; overflow-x: hidden; }
         h1 { color: #2c3e50; margin-bottom: 5px; }
         .subtitle { color: #e17055; font-size: 20px; font-weight: bold; margin-top: 0; }
 
-        /* 按鈕共用 */
         .btn { background-color: #ff6b6b; color: white; border: none; padding: 12px 24px; font-size: 20px; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); transition: all 0.2s; margin: 5px; }
         .btn:hover { transform: scale(1.05); background-color: #ff4757; }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
@@ -25,22 +23,18 @@
         .screen.active { display: block; animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 輸入框與房間號碼 */
         .input-box { font-size: 24px; padding: 10px; border-radius: 10px; border: 2px solid #ccc; width: 150px; text-align: center; font-weight: bold; margin: 10px; }
         .room-badge { background: #0984e3; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 18px; margin-bottom: 10px; display: inline-block; }
 
-        /* 頂部狀態列 */
         .header-bar { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
         .status-box { background: white; padding: 5px 15px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-weight: bold; font-size: 20px; display: flex; align-items: center; gap: 10px; }
         #timer { color: #d63031; font-size: 24px; }
         #turnIndicator { color: #0984e3; background: #ffeaa7; }
 
-        /* 遊戲區塊與棋盤 */
         .game-area { display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
         .board { display: grid; grid-template-columns: repeat(6, 80px); grid-template-rows: repeat(5, 80px); gap: 5px; background-color: #dfe6e9; padding: 10px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); position: relative; }
         .tile { background-color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: #636e72; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; padding: 2px; line-height: 1.2; }
         
-        /* 環狀路線設定 */
         .tile[data-index="0"] { grid-column: 1; grid-row: 1; background: #ffeaa7; }
         .tile[data-index="1"] { grid-column: 2; grid-row: 1; } .tile[data-index="2"] { grid-column: 3; grid-row: 1; }
         .tile[data-index="3"] { grid-column: 4; grid-row: 1; } .tile[data-index="4"] { grid-column: 5; grid-row: 1; }
@@ -55,7 +49,6 @@
 
         .token { width: 20px; height: 20px; border-radius: 50%; position: absolute; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: all 0.5s ease-in-out; z-index: 10; }
 
-        /* 骰子與隊伍卡 */
         #diceBtn { font-size: 50px; width: 100px; height: 100px; border-radius: 20px; background-color: #1dd1a1; box-shadow: 0 10px 20px rgba(29, 209, 161, 0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: white; animation: pulse 2s infinite; margin: 0 auto; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         
@@ -64,7 +57,6 @@
         .team-card h3 { margin: 5px 0; font-size: 16px; }
         .team-card.active-team { border-color: #ffda79; transform: scale(1.1); box-shadow: 0 8px 15px rgba(255, 218, 121, 0.6); }
 
-        /* 彈出視窗 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: white; padding: 30px; border-radius: 20px; max-width: 600px; width: 85%; font-size: 22px; text-align: center; }
         .task-title { font-size: 28px; font-weight: bold; margin-bottom: 15px; }
@@ -73,10 +65,8 @@
         .progress-bar { width: 100%; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; display: none; margin-bottom: 15px; }
         .progress-fill { height: 100%; background: #1dd1a1; width: 100%; transition: width 1s linear, background-color 1s; }
 
-        /* 隱藏觀眾的按鈕 */
         body.viewer-mode .host-only { display: none !important; }
 
-        /* 手機版 RWD */
         @media (max-width: 768px) {
             .board { grid-template-columns: repeat(6, 50px); grid-template-rows: repeat(5, 50px); padding: 5px; gap: 3px; }
             .tile { font-size: 10px; border-radius: 5px; }
@@ -143,7 +133,7 @@
         <h1 style="font-size: 36px; color: #1dd1a1;">🎉 美好的旅程 🎉</h1>
         <p>每一個家庭都是神美好的創造，這是一路上給你們的祝福：</p>
         <div id="blessingsContainer"></div>
-        <button class="btn host-only" style="margin-top:20px;" onclick="location.reload()">🔄 回首頁</button>
+        <button class="btn host-only" style="margin-top:20px;" onclick="resetGameAndGoHome()">🔄 結束並回首頁</button>
     </div>
 
     <div id="taskModal" class="modal">
@@ -152,19 +142,19 @@
             <div id="taskDesc" class="task-desc">說明...</div>
             <div id="taskAnswer" class="answer-box">這裡是答案</div>
             <div class="progress-bar" id="taskProgress"><div class="progress-fill" id="taskProgressFill"></div></div>
-            
             <div id="modalButtons" class="host-only"></div>
         </div>
     </div>
 
     <script>
         // ==========================================
-        // ⚠️ 請在這裡貼上你的 Firebase Config
+        // ⚠️ 修正 Firebase 連線設定 (注意 databaseURL)
         // ==========================================
-
         const firebaseConfig = {
             apiKey: "AIzaSyBEAhnhUSOK9uBvT-pIbDUvQ_KYJKzFNy4",
             authDomain: "goodnewsland.firebaseapp.com",
+            // 下面這行是解決你截圖錯誤的關鍵！確保有加上 asia-southeast1
+            databaseURL: "https://goodnewsland-default-rtdb.asia-southeast1.firebasedatabase.app", 
             projectId: "goodnewsland",
             storageBucket: "goodnewsland.firebasestorage.app",
             messagingSenderId: "156384814867",
@@ -172,21 +162,18 @@
         };
         // ==========================================
 
-        // 初始化 Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 全域變數
         let isHost = false;
         let myRoomId = "";
         let hostTimerInterval;
         let hostChallengeTimer;
+        let hasResumedTimer = false; // 防呆重整計時器
+        let currentSecretDesc = ""; // 解決 SyntaxError 的全域變數
         
-        // 遊戲狀態 (這顆物件會即時同步到 Firebase)
         let state = {
-            screen: 'gameScreen', // 'gameScreen', 'endScreen'
+            screen: 'gameScreen',
             time: 0,
             teams: [],
             turnIndex: 0,
@@ -208,16 +195,33 @@
         const quizzes = [
             "耶穌降生在哪個城市？|伯利恆", "耶穌用什麼食物餵飽了五千人？|五個餅、兩條魚", "誰出賣了耶穌？|猶大",
             "耶穌死後第幾天復活？|第三天", "主禱文的第一句話是什麼？|我們在天上的父", "耶穌把水變成了什麼？|酒"
-        ]; // 節省版面，你之後可以把50題全貼回來
+        ]; 
         const challenges = [
             { type: "timer", name: "💪 靠主剛強：登山寶訓", desc: "【填空題 - 30秒挑戰】\n虛心的人有福了！因為____是他們的。", answer: "天國" },
             { type: "secret", name: "🙈 秘密任務：聖經比手畫腳", desc: "【大人比動作，小孩猜】\n題目：五餅二魚 或 挪亞方舟", answer: "" }
         ];
 
-        // --- 初始化 UI ---
         createBoard();
 
-        // --- 角色選擇 ---
+        // --- 防呆：檢查是否意外斷線 ---
+        window.onload = function() {
+            const savedRoom = sessionStorage.getItem('roomId');
+            const savedRole = sessionStorage.getItem('role');
+            if(savedRoom && savedRole) {
+                myRoomId = savedRoom;
+                isHost = (savedRole === 'host');
+                document.getElementById('roleScreen').classList.remove('active');
+
+                if(!isHost) {
+                    document.body.classList.add('viewer-mode');
+                    document.getElementById('diceBtn').style.display = 'none';
+                    document.getElementById('viewerDice').style.display = 'flex';
+                }
+                listenToRoom(myRoomId); // 直接恢復連線！
+            }
+        };
+
+        // --- 角色與設定 ---
         function selectRole(role) {
             if (role === 'host') {
                 isHost = true;
@@ -228,45 +232,53 @@
                 myRoomId = document.getElementById('joinRoomId').value.trim();
                 if (myRoomId.length !== 4) { alert("請輸入 4 位數房號"); return; }
                 
+                // 儲存暫存
+                sessionStorage.setItem('roomId', myRoomId);
+                sessionStorage.setItem('role', 'viewer');
+
                 document.body.classList.add('viewer-mode');
                 document.getElementById('diceBtn').style.display = 'none';
                 document.getElementById('viewerDice').style.display = 'flex';
-                
                 listenToRoom(myRoomId);
             }
         }
 
-        // --- 房主設定 ---
         let hostSettings = { time: 35, teams: 3 };
         function selectTime(btn, m) { document.querySelectorAll('#timeSelector .btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); hostSettings.time = m; }
         function selectTeamCount(btn, c) { document.querySelectorAll('#teamSelector .btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); hostSettings.teams = c; }
 
         function initHostGame() {
-            myRoomId = Math.floor(1000 + Math.random() * 9000).toString(); // 產生 4 位數房號
+            myRoomId = Math.floor(1000 + Math.random() * 9000).toString(); 
             
-            // 初始化狀態
             state.time = hostSettings.time * 60;
             state.teams = teamColors.slice(0, hostSettings.teams).map((t, i) => ({ ...t, id: i, pos: 0, steps: 0 }));
             state.screen = 'gameScreen';
             
-            syncState(); // 寫入 Firebase
+            syncState(); 
+            
+            // 儲存暫存，防止 F5 悲劇
+            sessionStorage.setItem('roomId', myRoomId);
+            sessionStorage.setItem('role', 'host');
             
             document.getElementById('startScreen').classList.remove('active');
-            listenToRoom(myRoomId); // 房主自己也監聽，統一用 Render 渲染畫面
-            
-            // 房主負責跑計時器
+            listenToRoom(myRoomId); 
+            startHostTimer(); // 啟動主計時器
+        }
+
+        function startHostTimer() {
+            if(hostTimerInterval) clearInterval(hostTimerInterval);
             hostTimerInterval = setInterval(() => {
-                state.time--;
-                if (state.time % 5 === 0) syncState(); // 每 5 秒同步一次時間即可，減輕網路負擔
-                renderTime(); // 本地每秒更新
-                if (state.time <= 0) hostEndGame();
+                if(state.time > 0) {
+                    state.time--;
+                    if (state.time % 5 === 0) syncState(); 
+                    renderTime(); 
+                    if (state.time <= 0) hostEndGame();
+                }
             }, 1000);
         }
 
-        // --- Firebase 同步核心 ---
-        function syncState() {
-            if (isHost) db.ref('rooms/' + myRoomId).set(state);
-        }
+        // --- Firebase 連線 ---
+        function syncState() { if (isHost) db.ref('rooms/' + myRoomId).set(state); }
 
         function listenToRoom(roomId) {
             document.getElementById('roleScreen').classList.remove('active');
@@ -277,14 +289,21 @@
                 if (data) {
                     state = data;
                     renderAll();
+                    
+                    // 防呆重整後，幫房主把計時器重新掛上去
+                    if(isHost && !hasResumedTimer && state.screen === 'gameScreen' && state.time > 0) {
+                        startHostTimer();
+                        hasResumedTimer = true;
+                    }
                 } else if (!isHost) {
-                    alert("找不到房間，請確認房號");
+                    alert("找不到房間，可能是房主已結束遊戲。");
+                    sessionStorage.clear();
                     location.reload();
                 }
             });
         }
 
-        // --- 畫面渲染 (房主跟觀眾都會執行) ---
+        // --- 畫面渲染 ---
         function createBoard() {
             const board = document.getElementById('board');
             for (let i = 0; i < boardSize; i++) {
@@ -299,14 +318,12 @@
         }
 
         function renderAll() {
-            // 切換畫面
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(state.screen).classList.add('active');
 
             if (state.screen === 'gameScreen') {
                 renderTime();
                 
-                // 隊伍卡片
                 const container = document.getElementById('teamsContainer');
                 container.innerHTML = '';
                 state.teams.forEach((team, index) => {
@@ -317,7 +334,6 @@
                     container.appendChild(card);
                 });
 
-                // 輪替提示
                 if(state.teams.length > 0) {
                     const indicator = document.getElementById('turnIndicator');
                     indicator.innerText = `輪到：${state.teams[state.turnIndex].name}`;
@@ -325,24 +341,20 @@
                     indicator.style.color = "#fff";
                 }
 
-                // 棋子
                 document.querySelectorAll('.token').forEach(e => e.remove());
                 state.teams.forEach((team) => {
                     const tile = document.querySelector(`.tile[data-index="${team.pos}"]`);
                     if(tile) {
                         const token = document.createElement('div');
-                        token.className = 'token';
-                        token.style.backgroundColor = team.color;
+                        token.className = 'token'; token.style.backgroundColor = team.color;
                         token.style.transform = `translate(${team.id * 4 - 8}px, ${team.id * 4 - 8}px)`;
                         tile.appendChild(token);
                     }
                 });
 
-                // 骰子顯示
                 if (isHost) document.getElementById('diceBtn').innerText = state.diceValue;
                 else document.getElementById('viewerDice').innerText = state.diceValue;
 
-                // 任務視窗
                 if (state.modal.show) {
                     document.getElementById('taskTitle').innerText = state.modal.title;
                     document.getElementById('taskTitle').style.color = state.modal.color;
@@ -362,7 +374,6 @@
                     } else {
                         document.getElementById('taskProgress').style.display = 'none';
                     }
-
                     document.getElementById('taskModal').style.display = 'flex';
                 } else {
                     document.getElementById('taskModal').style.display = 'none';
@@ -370,7 +381,7 @@
             } 
             else if (state.screen === 'endScreen') {
                 const container = document.getElementById('blessingsContainer');
-                if (container.innerHTML === '') { // 避免重複渲染
+                if (container.innerHTML === '') { 
                     state.teams.forEach((team, index) => {
                         const card = document.createElement('div');
                         card.style.cssText = `background: #fff2cc; padding: 15px; margin: 10px auto; border-radius: 10px; border-left: 8px solid ${team.color}; text-align: left; max-width: 500px;`;
@@ -386,7 +397,7 @@
             document.getElementById('timer').innerText = `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
         }
 
-        // --- 房主專屬操作邏輯 (修改 state 並 Sync) ---
+        // --- 房主邏輯 ---
         function rollDice() {
             const btn = document.getElementById('diceBtn');
             btn.disabled = true;
@@ -440,13 +451,9 @@
         function hostSetQuiz(btnArea) {
             const qString = quizzes[Math.floor(Math.random() * quizzes.length)];
             const [q, a] = qString.split('|');
-            state.modal.desc = "【快問快答】\n" + q;
-            state.modal.answer = a;
-            state.modal.showAnswer = false;
-            btnArea.innerHTML = `
-                <button class="btn btn-outline" style="color:#ff6b6b;" onclick="hostReRollQuiz()">🔄 換一題</button>
-                <button class="btn" style="background:#0984e3;" onclick="hostShowAnswer()">💡 顯示答案</button>
-            `;
+            state.modal.desc = "【快問快答】\n" + q; state.modal.answer = a; state.modal.showAnswer = false;
+            btnArea.innerHTML = `<button class="btn btn-outline" style="color:#ff6b6b;" onclick="hostReRollQuiz()">🔄 換一題</button>
+                                 <button class="btn" style="background:#0984e3;" onclick="hostShowAnswer()">💡 顯示答案</button>`;
             syncState();
         }
 
@@ -456,7 +463,8 @@
             
             if (chal.type === "secret") {
                 state.modal.desc = "⚠️ 秘密任務！\n【所有小朋友請閉眼！】";
-                btnArea.innerHTML = `<button class="btn" style="background:#8e44ad;" onclick="hostRevealSecret('${chal.desc}')">👀 小朋友閉眼了</button>`;
+                currentSecretDesc = chal.desc; // 📝 修正重點：儲存真實題目，不再塞進字串裡
+                btnArea.innerHTML = `<button class="btn" style="background:#8e44ad;" onclick="hostRevealSecret()">👀 小朋友閉眼了</button>`;
             } else if (chal.type === "timer") {
                 state.modal.desc = chal.desc;
                 btnArea.innerHTML = `<button class="btn" style="background:#ff9f43;" onclick="hostStartTimer()">⏳ 開始 30 秒</button>`;
@@ -470,8 +478,8 @@
 
         function hostReRollQuiz() { hostSetQuiz(document.getElementById('modalButtons')); }
         
-        window.hostRevealSecret = function(realDesc) {
-            state.modal.desc = realDesc; syncState();
+        window.hostRevealSecret = function() {
+            state.modal.desc = currentSecretDesc; syncState(); // 📝 修正重點：直接讀取變數
             document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#e74c3c;" onclick="hostHideSecret()">🙈 隱藏並開始計時</button>`;
         }
         
@@ -488,14 +496,11 @@
 
         window.hostStartTimer = function() {
             document.getElementById('modalButtons').innerHTML = `<button class="btn btn-outline" disabled>倒數中...</button>`;
-            let timeLeft = 30;
-            state.modal.progress = 100; syncState();
+            let timeLeft = 30; state.modal.progress = 100; syncState();
 
             hostChallengeTimer = setInterval(() => {
-                timeLeft--;
-                state.modal.progress = (timeLeft / 30) * 100;
-                
-                if (timeLeft % 2 === 0 || timeLeft <= 5) syncState(); // 稍微降低同步頻率以免卡頓，最後5秒密集同步
+                timeLeft--; state.modal.progress = (timeLeft / 30) * 100;
+                if (timeLeft % 2 === 0 || timeLeft <= 5) syncState(); 
                 
                 if (timeLeft <= 0) {
                     clearInterval(hostChallengeTimer);
@@ -506,17 +511,18 @@
         }
 
         window.hostCloseModal = function() {
-            clearInterval(hostChallengeTimer);
-            state.modal.show = false;
+            clearInterval(hostChallengeTimer); state.modal.show = false;
             state.turnIndex = (state.turnIndex + 1) % state.teams.length;
             syncState();
         }
 
         window.hostEndGame = function() {
-            clearInterval(hostTimerInterval);
-            state.screen = 'endScreen';
-            state.modal.show = false;
-            syncState();
+            clearInterval(hostTimerInterval); state.screen = 'endScreen'; state.modal.show = false; syncState();
+        }
+
+        window.resetGameAndGoHome = function() {
+            sessionStorage.clear(); // 清除暫存
+            location.reload();
         }
     </script>
 </body>
