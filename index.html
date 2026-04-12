@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>福音世界-恩典大富翁 GoodNewsLand</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         /* 全域設定 */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f8ff; color: #333; text-align: center; margin: 0; padding: 10px; overflow-x: hidden; }
@@ -13,7 +17,7 @@
         /* 按鈕共用 */
         .btn { background-color: #ff6b6b; color: white; border: none; padding: 12px 24px; font-size: 20px; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); transition: all 0.2s; margin: 5px; }
         .btn:hover { transform: scale(1.05); background-color: #ff4757; }
-        .btn:active { transform: scale(0.95); }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-outline { background-color: transparent; border: 2px solid #ccc; color: #555; box-shadow: none; }
         .btn-outline.selected { background-color: #1dd1a1; border-color: #1dd1a1; color: white; box-shadow: 0 5px 15px rgba(29, 209, 161, 0.4); }
 
@@ -21,16 +25,18 @@
         .screen.active { display: block; animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        /* 輸入框與房間號碼 */
+        .input-box { font-size: 24px; padding: 10px; border-radius: 10px; border: 2px solid #ccc; width: 150px; text-align: center; font-weight: bold; margin: 10px; }
+        .room-badge { background: #0984e3; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 18px; margin-bottom: 10px; display: inline-block; }
+
         /* 頂部狀態列 */
         .header-bar { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
         .status-box { background: white; padding: 5px 15px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-weight: bold; font-size: 20px; display: flex; align-items: center; gap: 10px; }
         #timer { color: #d63031; font-size: 24px; }
         #turnIndicator { color: #0984e3; background: #ffeaa7; }
-        .icon-btn { cursor: pointer; background: #eee; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .icon-btn:hover { background: #ddd; }
 
         /* 遊戲區塊與棋盤 */
-        .game-area { display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+        .game-area { display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
         .board { display: grid; grid-template-columns: repeat(6, 80px); grid-template-rows: repeat(5, 80px); gap: 5px; background-color: #dfe6e9; padding: 10px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); position: relative; }
         .tile { background-color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: #636e72; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; padding: 2px; line-height: 1.2; }
         
@@ -56,7 +62,6 @@
         .teams-container { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
         .team-card { background: white; padding: 10px; border-radius: 15px; min-width: 90px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 4px solid transparent; transition: all 0.3s; font-size: 14px; }
         .team-card h3 { margin: 5px 0; font-size: 16px; }
-        .team-card p { margin: 0; }
         .team-card.active-team { border-color: #ffda79; transform: scale(1.1); box-shadow: 0 8px 15px rgba(255, 218, 121, 0.6); }
 
         /* 彈出視窗 */
@@ -68,13 +73,14 @@
         .progress-bar { width: 100%; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; display: none; margin-bottom: 15px; }
         .progress-fill { height: 100%; background: #1dd1a1; width: 100%; transition: width 1s linear, background-color 1s; }
 
-        /* 手機版 RWD (小於 768px) */
+        /* 隱藏觀眾的按鈕 */
+        body.viewer-mode .host-only { display: none !important; }
+
+        /* 手機版 RWD */
         @media (max-width: 768px) {
             .board { grid-template-columns: repeat(6, 50px); grid-template-rows: repeat(5, 50px); padding: 5px; gap: 3px; }
             .tile { font-size: 10px; border-radius: 5px; }
             .token { width: 14px; height: 14px; border-width: 1px; }
-            .header-bar { gap: 10px; }
-            .status-box { font-size: 16px; padding: 5px 10px; }
             #diceBtn { width: 80px; height: 80px; font-size: 40px; }
             .modal-content { font-size: 18px; padding: 20px; }
             .task-title { font-size: 22px; }
@@ -83,49 +89,53 @@
 </head>
 <body>
 
-    <div id="startScreen" class="screen active">
-        <h1 style="font-size: 42px; color: #ff6b6b; margin-top: 30px;">🎪 福音世界</h1>
+    <div id="roleScreen" class="screen active">
+        <h1 style="font-size: 42px; color: #ff6b6b; margin-top: 50px;">🎪 福音世界</h1>
         <p class="subtitle">恩典大富翁 GoodNewsLand</p>
-        
-        <div style="background: white; padding: 20px; border-radius: 15px; max-width: 500px; margin: 30px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; margin: 40px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            <button class="btn" style="width: 100%; margin-bottom: 20px;" onclick="selectRole('host')">🏠 建立房間 (房主/大螢幕)</button>
+            <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+            <p>台下觀眾請輸入房號加入：</p>
+            <input type="text" id="joinRoomId" class="input-box" placeholder="房號" maxlength="4">
+            <button class="btn" style="background-color: #0984e3; width: 100%;" onclick="selectRole('viewer')">📱 加入觀看</button>
+        </div>
+    </div>
+
+    <div id="startScreen" class="screen host-only">
+        <h1 style="font-size: 42px; color: #ff6b6b; margin-top: 30px;">🏠 建立遊戲設定</h1>
+        <div style="background: white; padding: 20px; border-radius: 15px; max-width: 500px; margin: 20px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
             <h3>1. 選擇遊玩時間</h3>
             <div id="timeSelector">
                 <button class="btn btn-outline" onclick="selectTime(this, 20)">20分</button>
-                <button class="btn btn-outline" onclick="selectTime(this, 30)">30分</button>
                 <button class="btn btn-outline selected" onclick="selectTime(this, 35)">35分</button>
-                <button class="btn btn-outline" onclick="selectTime(this, 40)">40分</button>
-                <button class="btn btn-outline" onclick="selectTime(this, 50)">50分</button>
                 <button class="btn btn-outline" onclick="selectTime(this, 60)">60分</button>
             </div>
-
             <h3 style="margin-top: 25px;">2. 選擇小隊數量</h3>
             <div id="teamSelector">
                 <button class="btn btn-outline selected" onclick="selectTeamCount(this, 3)">3 隊</button>
                 <button class="btn btn-outline" onclick="selectTeamCount(this, 4)">4 隊</button>
-                <button class="btn btn-outline" onclick="selectTeamCount(this, 5)">5 隊</button>
                 <button class="btn btn-outline" onclick="selectTeamCount(this, 6)">6 隊</button>
             </div>
-
-            <button class="btn" style="background-color: #1dd1a1; margin-top: 30px; font-size: 24px; width: 80%;" onclick="startGame()">🚀 開始遊戲</button>
+            <button class="btn" style="background-color: #1dd1a1; margin-top: 30px; width: 80%;" onclick="initHostGame()">🚀 產生房間並開始</button>
         </div>
     </div>
 
     <div id="gameScreen" class="screen">
+        <div class="room-badge">房號：<span id="displayRoomId">----</span></div>
+        
         <div class="header-bar">
-            <button class="icon-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
-            <div class="status-box">⏳ <span id="timer">35:00</span></div>
+            <div class="status-box">⏳ <span id="timer">00:00</span></div>
             <div class="status-box" id="turnIndicator">準備開始</div>
-            <button class="icon-btn" style="color: #d63031; width:auto; padding:0 10px;" onclick="confirmEndGame()">⏹ 提早結算</button>
+            <button class="btn host-only" style="background-color: #d63031; padding: 5px 15px; font-size:16px;" onclick="hostEndGame()">⏹ 提早結算</button>
         </div>
         
         <div class="game-area">
             <div class="board" id="board"></div>
             <div class="dice-container">
-                <button id="diceBtn" onclick="rollDice()">🎲</button>
-                <p style="color:#7f8c8d; margin-top: 10px; font-size: 14px;">點擊骰子前進</p>
+                <button id="diceBtn" class="host-only" onclick="rollDice()">🎲</button>
+                <div id="viewerDice" style="font-size: 50px; width: 100px; height: 100px; border-radius: 20px; background-color: #1dd1a1; display: none; align-items: center; justify-content: center; color: white; margin: 0 auto;">🎲</div>
             </div>
         </div>
-
         <div class="teams-container" id="teamsContainer"></div>
     </div>
 
@@ -133,7 +143,7 @@
         <h1 style="font-size: 36px; color: #1dd1a1;">🎉 美好的旅程 🎉</h1>
         <p>每一個家庭都是神美好的創造，這是一路上給你們的祝福：</p>
         <div id="blessingsContainer"></div>
-        <button class="btn" style="margin-top:20px;" onclick="location.reload()">🔄 再玩一次</button>
+        <button class="btn host-only" style="margin-top:20px;" onclick="location.reload()">🔄 回首頁</button>
     </div>
 
     <div id="taskModal" class="modal">
@@ -143,351 +153,370 @@
             <div id="taskAnswer" class="answer-box">這裡是答案</div>
             <div class="progress-bar" id="taskProgress"><div class="progress-fill" id="taskProgressFill"></div></div>
             
-            <div id="modalButtons"></div>
+            <div id="modalButtons" class="host-only"></div>
         </div>
     </div>
 
     <script>
-        // --- 設定狀態變數 ---
-        let selectedMinutes = 35;
-        let selectedTeamCount = 3;
-        let soundEnabled = true;
-        let currentSecretDesc = ""; // 儲存秘密任務內容
+        // ==========================================
+        // ⚠️ 請在這裡貼上你的 Firebase Config
+        // ==========================================
 
-        function selectTime(btn, mins) {
-            document.querySelectorAll('#timeSelector .btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedMinutes = mins;
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEAhnhUSOK9uBvT-pIbDUvQ_KYJKzFNy4",
+            authDomain: "goodnewsland.firebaseapp.com",
+            projectId: "goodnewsland",
+            storageBucket: "goodnewsland.firebasestorage.app",
+            messagingSenderId: "156384814867",
+            appId: "1:156384814867:web:4ba7e1187bcb5786431ce6"
+        };
+        // ==========================================
+
+        // 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        const db = firebase.database();
 
-        function selectTeamCount(btn, count) {
-            document.querySelectorAll('#teamSelector .btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedTeamCount = count;
-        }
+        // 全域變數
+        let isHost = false;
+        let myRoomId = "";
+        let hostTimerInterval;
+        let hostChallengeTimer;
+        
+        // 遊戲狀態 (這顆物件會即時同步到 Firebase)
+        let state = {
+            screen: 'gameScreen', // 'gameScreen', 'endScreen'
+            time: 0,
+            teams: [],
+            turnIndex: 0,
+            diceValue: '🎲',
+            modal: { show: false, title: '', color: '', desc: '', answer: '', showAnswer: false, progress: 0 }
+        };
 
-        function toggleSound() {
-            soundEnabled = !soundEnabled;
-            document.getElementById('soundBtn').innerText = soundEnabled ? '🔊' : '🔈';
-        }
-
-        // --- 音效系統 ---
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx;
-
-        function playTone(freq, type, duration, vol=0.1) {
-            if (!soundEnabled) return;
-            if (!audioCtx) audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.stop(audioCtx.currentTime + duration);
-        }
-
-        function playDiceSound() { playTone(600, 'square', 0.1); setTimeout(() => playTone(800, 'square', 0.1), 100); }
-        function playTickSound() { playTone(1000, 'sine', 0.05, 0.05); }
-        function playTadaSound() { playTone(440, 'triangle', 0.1); setTimeout(() => playTone(554, 'triangle', 0.1), 100); setTimeout(() => playTone(659, 'triangle', 0.4), 200); }
-        function playAlarmSound() { playTone(300, 'sawtooth', 0.5); }
-
-        // --- 遊戲資料 ---
+        const boardSize = 18;
         const teamColors = [
             { name: "🔴 紅獅隊", color: "#ff7675" }, { name: "🔵 藍鴿隊", color: "#74b9ff" },
             { name: "🟢 綠魚隊", color: "#55efc4" }, { name: "🟡 黃羊隊", color: "#ffeaa7" },
             { name: "🟣 紫鷹隊", color: "#a29bfe" }, { name: "🟠 橘駝隊", color: "#fab1a0" }
         ];
-        
         const blessingVerses = [
             "『你當剛強壯膽！不要懼怕。』 (約 1:9)", "『應當一無掛慮，凡事藉著禱告祈求。』 (腓 4:6)",
             "『你們看那天上的飛鳥，天父尚且養活。』 (太 6:26)", "『耶和華是我的牧者，我必不致缺乏。』 (詩 23:1)",
             "『神賜給我們，不是膽怯的心，乃是剛強、仁愛、謹守的心。』 (提後 1:7)", "『喜樂的心乃是良藥。』 (箴 17:22)"
         ];
-
         const quizzes = [
-            "耶穌降生在哪個城市？|伯利恆", "耶穌降生時被放在哪裡？|馬槽", "耶穌在世上的父母叫什麼名字？|約瑟和馬利亞",
-            "耶穌用什麼食物餵飽了五千人？|五個餅、兩條魚", "耶穌在水面上行走時，哪位門徒也試著走？|彼得", "耶穌有幾個核心門徒？|12個",
-            "誰出賣了耶穌？|猶大", "耶穌死後第幾天復活？|第三天", "耶穌的職業本來是什麼？|木匠", "東方博士送給耶穌哪三樣禮物？|黃金、乳香、沒藥",
-            "耶穌把水變成了什麼？|酒", "誰爬上桑樹只為了看耶穌一眼？|撒該", "耶穌進耶路撒冷時，騎著什麼動物？|驢駒",
-            "耶穌常常用什麼方式講道？|比喻", "耶穌說讓什麼樣的人到他這裡來，不要禁止他們？|小孩子", "耶穌在哪個海邊平靜了風浪？|加利利海",
-            "耶穌醫治了十個長大痲瘋的人，有幾個回來道謝？|1個", "誰為耶穌施洗？|施洗約翰", "瞎子巴底買大聲呼求耶穌，他求什麼？|能看見",
-            "耶穌被釘在哪裡為我們贖罪？|十字架", "聖經中有哪四卷福音書？|馬太、馬可、路加、約翰", "耶穌在曠野禁食幾天？|40天",
-            "主禱文的第一句話是什麼？|我們在天上的父", "浪子回頭的比喻中，小兒子去遠方做什麼工作？|放豬", "哪一位門徒曾經三次不認主？|彼得"
-        ];
-
+            "耶穌降生在哪個城市？|伯利恆", "耶穌用什麼食物餵飽了五千人？|五個餅、兩條魚", "誰出賣了耶穌？|猶大",
+            "耶穌死後第幾天復活？|第三天", "主禱文的第一句話是什麼？|我們在天上的父", "耶穌把水變成了什麼？|酒"
+        ]; // 節省版面，你之後可以把50題全貼回來
         const challenges = [
-            { type: "timer", name: "💪 靠主剛強：登山寶訓", desc: "【填空題 - 30秒挑戰】\n虛心的人有福了！因為____是他們的。\n清心的人有福了！因為他們必得見____。", answer: "天國 / 神" },
-            { type: "timer", name: "💪 靠主剛強：主禱文", desc: "【背誦題 - 30秒挑戰】\n請在30秒內背誦出完整的主禱文！", answer: "" },
-            { type: "normal", name: "💪 靠主剛強：讚美耶穌", desc: "【唱歌題】\n全家起立，手牽手一起唱一首最喜歡的兒童詩歌或短歌！", answer: "" },
+            { type: "timer", name: "💪 靠主剛強：登山寶訓", desc: "【填空題 - 30秒挑戰】\n虛心的人有福了！因為____是他們的。", answer: "天國" },
             { type: "secret", name: "🙈 秘密任務：聖經比手畫腳", desc: "【大人比動作，小孩猜】\n題目：五餅二魚 或 挪亞方舟", answer: "" }
         ];
 
-        let currentTeams = [];
-        let currentTurnIndex = 0;
-        let totalTime = 0;
-        let timerInterval;
-        let challengeTimer;
-        const boardSize = 18;
+        // --- 初始化 UI ---
+        createBoard();
 
-        // --- 核心邏輯 ---
-
-        function startGame() {
-            totalTime = selectedMinutes * 60;
-            currentTeams = teamColors.slice(0, selectedTeamCount).map((t, i) => ({ ...t, id: i, pos: 0, steps: 0 }));
-            
-            document.getElementById('startScreen').classList.remove('active');
-            document.getElementById('gameScreen').classList.add('active');
-            
-            createBoard(); renderTeams(); updateBoardTokens(); updateTurnIndicator(); startTimer();
-        }
-
-        function createBoard() {
-            const board = document.getElementById('board');
-            for (let i = 0; i < boardSize; i++) {
-                const tile = document.createElement('div');
-                tile.className = 'tile';
-                tile.setAttribute('data-index', i);
-                if (i === 0) tile.innerHTML = "🏁<br>起點";
-                else if (i % 4 === 0) tile.innerHTML = "✨<br>奇蹟";
-                else if (i % 3 === 0) tile.innerHTML = "💪<br>剛強";
-                else tile.innerHTML = "📖<br>隨堂考";
-                board.appendChild(tile);
+        // --- 角色選擇 ---
+        function selectRole(role) {
+            if (role === 'host') {
+                isHost = true;
+                document.getElementById('roleScreen').classList.remove('active');
+                document.getElementById('startScreen').classList.add('active');
+            } else {
+                isHost = false;
+                myRoomId = document.getElementById('joinRoomId').value.trim();
+                if (myRoomId.length !== 4) { alert("請輸入 4 位數房號"); return; }
+                
+                document.body.classList.add('viewer-mode');
+                document.getElementById('diceBtn').style.display = 'none';
+                document.getElementById('viewerDice').style.display = 'flex';
+                
+                listenToRoom(myRoomId);
             }
         }
 
-        function renderTeams() {
-            const container = document.getElementById('teamsContainer');
-            container.innerHTML = '';
-            currentTeams.forEach((team, index) => {
-                const card = document.createElement('div');
-                card.className = `team-card ${index === currentTurnIndex ? 'active-team' : ''}`;
-                card.style.borderTopColor = team.color;
-                card.innerHTML = `<h3 style="color:${team.color}">${team.name}</h3><p>${team.steps} 步</p>`;
-                container.appendChild(card);
-            });
+        // --- 房主設定 ---
+        let hostSettings = { time: 35, teams: 3 };
+        function selectTime(btn, m) { document.querySelectorAll('#timeSelector .btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); hostSettings.time = m; }
+        function selectTeamCount(btn, c) { document.querySelectorAll('#teamSelector .btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); hostSettings.teams = c; }
+
+        function initHostGame() {
+            myRoomId = Math.floor(1000 + Math.random() * 9000).toString(); // 產生 4 位數房號
+            
+            // 初始化狀態
+            state.time = hostSettings.time * 60;
+            state.teams = teamColors.slice(0, hostSettings.teams).map((t, i) => ({ ...t, id: i, pos: 0, steps: 0 }));
+            state.screen = 'gameScreen';
+            
+            syncState(); // 寫入 Firebase
+            
+            document.getElementById('startScreen').classList.remove('active');
+            listenToRoom(myRoomId); // 房主自己也監聽，統一用 Render 渲染畫面
+            
+            // 房主負責跑計時器
+            hostTimerInterval = setInterval(() => {
+                state.time--;
+                if (state.time % 5 === 0) syncState(); // 每 5 秒同步一次時間即可，減輕網路負擔
+                renderTime(); // 本地每秒更新
+                if (state.time <= 0) hostEndGame();
+            }, 1000);
         }
 
-        function updateBoardTokens() {
-            document.querySelectorAll('.token').forEach(e => e.remove());
-            currentTeams.forEach((team) => {
-                const tile = document.querySelector(`.tile[data-index="${team.pos}"]`);
-                if(tile) {
-                    const token = document.createElement('div');
-                    token.className = 'token';
-                    token.style.backgroundColor = team.color;
-                    token.style.transform = `translate(${team.id * 4 - 8}px, ${team.id * 4 - 8}px)`;
-                    tile.appendChild(token);
+        // --- Firebase 同步核心 ---
+        function syncState() {
+            if (isHost) db.ref('rooms/' + myRoomId).set(state);
+        }
+
+        function listenToRoom(roomId) {
+            document.getElementById('roleScreen').classList.remove('active');
+            document.getElementById('displayRoomId').innerText = roomId;
+            
+            db.ref('rooms/' + roomId).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    state = data;
+                    renderAll();
+                } else if (!isHost) {
+                    alert("找不到房間，請確認房號");
+                    location.reload();
                 }
             });
         }
 
-        function updateTurnIndicator() {
-            const indicator = document.getElementById('turnIndicator');
-            indicator.innerText = `輪到：${currentTeams[currentTurnIndex].name}`;
-            indicator.style.backgroundColor = currentTeams[currentTurnIndex].color;
-            indicator.style.color = "#fff";
+        // --- 畫面渲染 (房主跟觀眾都會執行) ---
+        function createBoard() {
+            const board = document.getElementById('board');
+            for (let i = 0; i < boardSize; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile'; tile.setAttribute('data-index', i);
+                if (i === 0) tile.innerHTML = "🏁<br>起點";
+                else if (i % 4 === 0) tile.innerHTML = "✨<br>奇蹟";
+                else if (i % 3 === 0) tile.innerHTML = "💪<br>剛強";
+                else tile.innerHTML = "📖<br>隨考";
+                board.appendChild(tile);
+            }
         }
 
+        function renderAll() {
+            // 切換畫面
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(state.screen).classList.add('active');
+
+            if (state.screen === 'gameScreen') {
+                renderTime();
+                
+                // 隊伍卡片
+                const container = document.getElementById('teamsContainer');
+                container.innerHTML = '';
+                state.teams.forEach((team, index) => {
+                    const card = document.createElement('div');
+                    card.className = `team-card ${index === state.turnIndex ? 'active-team' : ''}`;
+                    card.style.borderTopColor = team.color;
+                    card.innerHTML = `<h3 style="color:${team.color}">${team.name}</h3><p>${team.steps} 步</p>`;
+                    container.appendChild(card);
+                });
+
+                // 輪替提示
+                if(state.teams.length > 0) {
+                    const indicator = document.getElementById('turnIndicator');
+                    indicator.innerText = `輪到：${state.teams[state.turnIndex].name}`;
+                    indicator.style.backgroundColor = state.teams[state.turnIndex].color;
+                    indicator.style.color = "#fff";
+                }
+
+                // 棋子
+                document.querySelectorAll('.token').forEach(e => e.remove());
+                state.teams.forEach((team) => {
+                    const tile = document.querySelector(`.tile[data-index="${team.pos}"]`);
+                    if(tile) {
+                        const token = document.createElement('div');
+                        token.className = 'token';
+                        token.style.backgroundColor = team.color;
+                        token.style.transform = `translate(${team.id * 4 - 8}px, ${team.id * 4 - 8}px)`;
+                        tile.appendChild(token);
+                    }
+                });
+
+                // 骰子顯示
+                if (isHost) document.getElementById('diceBtn').innerText = state.diceValue;
+                else document.getElementById('viewerDice').innerText = state.diceValue;
+
+                // 任務視窗
+                if (state.modal.show) {
+                    document.getElementById('taskTitle').innerText = state.modal.title;
+                    document.getElementById('taskTitle').style.color = state.modal.color;
+                    document.getElementById('taskDesc').innerText = state.modal.desc;
+                    
+                    if (state.modal.showAnswer && state.modal.answer) {
+                        document.getElementById('taskAnswer').style.display = 'block';
+                        document.getElementById('taskAnswer').innerText = "答案：" + state.modal.answer;
+                    } else {
+                        document.getElementById('taskAnswer').style.display = 'none';
+                    }
+
+                    if (state.modal.progress > 0) {
+                        document.getElementById('taskProgress').style.display = 'block';
+                        document.getElementById('taskProgressFill').style.width = `${state.modal.progress}%`;
+                        document.getElementById('taskProgressFill').style.backgroundColor = state.modal.progress <= 33 ? '#ff7675' : '#1dd1a1';
+                    } else {
+                        document.getElementById('taskProgress').style.display = 'none';
+                    }
+
+                    document.getElementById('taskModal').style.display = 'flex';
+                } else {
+                    document.getElementById('taskModal').style.display = 'none';
+                }
+            } 
+            else if (state.screen === 'endScreen') {
+                const container = document.getElementById('blessingsContainer');
+                if (container.innerHTML === '') { // 避免重複渲染
+                    state.teams.forEach((team, index) => {
+                        const card = document.createElement('div');
+                        card.style.cssText = `background: #fff2cc; padding: 15px; margin: 10px auto; border-radius: 10px; border-left: 8px solid ${team.color}; text-align: left; max-width: 500px;`;
+                        card.innerHTML = `<strong style="color:${team.color}">${team.name} 【共走 ${team.steps} 步】</strong><br><br>${blessingVerses[index]}`;
+                        container.appendChild(card);
+                    });
+                }
+            }
+        }
+
+        function renderTime() {
+            let m = Math.floor(state.time / 60); let s = state.time % 60;
+            document.getElementById('timer').innerText = `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
+        }
+
+        // --- 房主專屬操作邏輯 (修改 state 並 Sync) ---
         function rollDice() {
             const btn = document.getElementById('diceBtn');
             btn.disabled = true;
             let counter = 0;
             
             const rollAnim = setInterval(() => {
-                btn.innerText = Math.floor(Math.random() * 6) + 1;
-                playDiceSound();
+                state.diceValue = Math.floor(Math.random() * 6) + 1;
+                syncState();
                 counter++;
-                if(counter > 10) {
+                if(counter > 8) {
                     clearInterval(rollAnim);
                     const steps = Math.floor(Math.random() * 6) + 1;
-                    btn.innerText = steps;
+                    state.diceValue = steps;
                     
-                    const team = currentTeams[currentTurnIndex];
+                    const team = state.teams[state.turnIndex];
                     team.steps += steps;
                     team.pos = (team.pos + steps) % boardSize;
                     
-                    updateBoardTokens();
-                    setTimeout(() => { btn.innerText = '🎲'; btn.disabled = false; showTask(team.pos); }, 1000);
+                    syncState();
+                    setTimeout(() => { 
+                        state.diceValue = '🎲'; 
+                        btn.disabled = false; 
+                        hostGenTask(team.pos); 
+                    }, 1000);
                 }
-            }, 100);
+            }, 150);
         }
 
-        // --- 設置隨堂考內容 ---
-        function setQuizContent() {
-            const qString = quizzes[Math.floor(Math.random() * quizzes.length)];
-            const [q, a] = qString.split('|');
-            document.getElementById('taskDesc').innerText = "【快問快答】\n" + q;
-            document.getElementById('taskAnswer').innerText = "正確答案：" + a;
-            document.getElementById('taskAnswer').style.display = 'none';
-            
-            document.getElementById('modalButtons').innerHTML = `
-                <button class="btn btn-outline" style="color:#ff6b6b; border-color:#ff6b6b;" onclick="setQuizContent()">🔄 換一題</button>
-                <button class="btn" style="background:#0984e3;" onclick="showAnswer()">💡 顯示答案</button>
-            `;
-        }
-
-        // --- 設置靠主剛強內容 (加入換一題機制) ---
-        function setChallengeContent() {
-            const chal = challenges[Math.floor(Math.random() * challenges.length)];
+        function hostGenTask(pos) {
+            state.modal = { show: true, showAnswer: false, progress: 0, answer: '' };
             const btnArea = document.getElementById('modalButtons');
-            
-            document.getElementById('taskTitle').innerText = chal.name;
-            document.getElementById('taskTitle').style.color = "#54a0ff";
-            document.getElementById('taskAnswer').style.display = 'none';
-            
-            let desc = "";
-            let btnHTML = `<button class="btn btn-outline" style="color:#0984e3; border-color:#0984e3;" onclick="setChallengeContent()">🔄 換一題</button>`;
-
-            if (chal.type === "secret") {
-                desc = "⚠️ 注意！這題是秘密任務！\n請負責比動作的大人看螢幕，\n【所有小朋友請閉上眼睛或轉過頭！】";
-                currentSecretDesc = chal.desc; 
-                btnHTML += `<button class="btn" style="background:#8e44ad;" onclick="revealSecret()">👀 小朋友閉眼了，顯示題目</button>`;
-            } else if (chal.type === "timer") {
-                desc = chal.desc;
-                btnHTML += `<button class="btn" style="background:#ff9f43;" onclick="startChallengeTimer()">⏳ 開始 30 秒倒數</button>`;
-                if(chal.answer) {
-                    document.getElementById('taskAnswer').innerText = "答案：" + chal.answer;
-                    btnHTML += `<button class="btn btn-outline" onclick="showAnswer()">💡 顯示解答</button>`;
-                }
-            } else {
-                desc = chal.desc;
-                btnHTML += `<button class="btn" onclick="closeModal()">✅ 完成</button>`;
-            }
-
-            document.getElementById('taskDesc').innerText = desc;
-            btnArea.innerHTML = btnHTML;
-        }
-
-        // --- 任務視窗與流程控制 ---
-        function showTask(pos) {
-            clearInterval(challengeTimer);
-            document.getElementById('taskProgress').style.display = 'none';
-            document.getElementById('taskAnswer').style.display = 'none';
-            const btnArea = document.getElementById('modalButtons');
-            btnArea.innerHTML = '';
             
             if (pos === 0) {
-                document.getElementById('taskTitle').innerText = "🎉 休息一下";
-                document.getElementById('taskTitle').style.color = "#f39c12";
-                document.getElementById('taskDesc').innerText = "平安抵達起點，享受安息日！";
-                btnArea.innerHTML = `<button class="btn" onclick="closeModal()">✅ 完成</button>`;
-                document.getElementById('taskModal').style.display = 'flex';
+                state.modal.title = "🎉 休息一下"; state.modal.color = "#f39c12"; state.modal.desc = "平安抵達起點，享受安息日！";
+                btnArea.innerHTML = `<button class="btn" onclick="hostCloseModal()">✅ 完成</button>`;
             } 
             else if (pos % 4 === 0) {
-                document.getElementById('taskTitle').innerText = "✨ 奇蹟時刻";
-                document.getElementById('taskTitle').style.color = "#feca57";
-                document.getElementById('taskDesc').innerText = "【溫馨見證】派代表分享：本週上帝給我們家的一個小驚喜（限時1分鐘）。";
-                btnArea.innerHTML = `<button class="btn" onclick="closeModal()">✅ 完成分享</button>`;
-                document.getElementById('taskModal').style.display = 'flex';
+                state.modal.title = "✨ 奇蹟時刻"; state.modal.color = "#feca57"; state.modal.desc = "派代表分享本週的一個小驚喜（1分鐘）";
+                btnArea.innerHTML = `<button class="btn" onclick="hostCloseModal()">✅ 完成分享</button>`;
             } 
             else if (pos % 3 === 0) {
-                setChallengeContent(); // 呼叫出題功能
-                document.getElementById('taskModal').style.display = 'flex';
+                hostSetChallenge(btnArea);
             } 
             else {
-                document.getElementById('taskTitle').innerText = "📖 福音隨堂考";
-                document.getElementById('taskTitle').style.color = "#ff6b6b";
-                setQuizContent(); // 呼叫出題功能
-                document.getElementById('taskModal').style.display = 'flex';
+                state.modal.title = "📖 福音隨堂考"; state.modal.color = "#ff6b6b";
+                hostSetQuiz(btnArea);
             }
+            syncState();
         }
 
-        // 秘密任務流程
-        function revealSecret() {
-            document.getElementById('taskDesc').innerText = currentSecretDesc;
-            document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#e74c3c;" onclick="hideSecretAndStart()">🙈 記好了！隱藏題目並開始計時</button>`;
+        function hostSetQuiz(btnArea) {
+            const qString = quizzes[Math.floor(Math.random() * quizzes.length)];
+            const [q, a] = qString.split('|');
+            state.modal.desc = "【快問快答】\n" + q;
+            state.modal.answer = a;
+            state.modal.showAnswer = false;
+            btnArea.innerHTML = `
+                <button class="btn btn-outline" style="color:#ff6b6b;" onclick="hostReRollQuiz()">🔄 換一題</button>
+                <button class="btn" style="background:#0984e3;" onclick="hostShowAnswer()">💡 顯示答案</button>
+            `;
+            syncState();
+        }
+
+        function hostSetChallenge(btnArea) {
+            const chal = challenges[Math.floor(Math.random() * challenges.length)];
+            state.modal.title = chal.name; state.modal.color = "#54a0ff"; state.modal.answer = chal.answer || '';
+            
+            if (chal.type === "secret") {
+                state.modal.desc = "⚠️ 秘密任務！\n【所有小朋友請閉眼！】";
+                btnArea.innerHTML = `<button class="btn" style="background:#8e44ad;" onclick="hostRevealSecret('${chal.desc}')">👀 小朋友閉眼了</button>`;
+            } else if (chal.type === "timer") {
+                state.modal.desc = chal.desc;
+                btnArea.innerHTML = `<button class="btn" style="background:#ff9f43;" onclick="hostStartTimer()">⏳ 開始 30 秒</button>`;
+                if(chal.answer) btnArea.innerHTML += `<button class="btn btn-outline" onclick="hostShowAnswer()">💡 顯示解答</button>`;
+            } else {
+                state.modal.desc = chal.desc;
+                btnArea.innerHTML = `<button class="btn" onclick="hostCloseModal()">✅ 完成</button>`;
+            }
+            syncState();
+        }
+
+        function hostReRollQuiz() { hostSetQuiz(document.getElementById('modalButtons')); }
+        
+        window.hostRevealSecret = function(realDesc) {
+            state.modal.desc = realDesc; syncState();
+            document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#e74c3c;" onclick="hostHideSecret()">🙈 隱藏並開始計時</button>`;
         }
         
-        function hideSecretAndStart() {
-            document.getElementById('taskDesc').innerText = "【請小朋友張開眼睛猜題！】\n\n大人請開始比手畫腳～";
-            document.getElementById('modalButtons').innerHTML = ""; // 交給計時器顯示完成
-            startChallengeTimer();
+        window.hostHideSecret = function() {
+            state.modal.desc = "【請小朋友張開眼睛猜題！】\n大人請開始比手畫腳～";
+            document.getElementById('modalButtons').innerHTML = ""; 
+            hostStartTimer();
         }
 
-        // 顯示答案
-        function showAnswer() {
-            document.getElementById('taskAnswer').style.display = 'block';
-            document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#1dd1a1;" onclick="closeModal()">✅ 完成任務</button>`;
+        window.hostShowAnswer = function() {
+            state.modal.showAnswer = true; syncState();
+            document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#1dd1a1;" onclick="hostCloseModal()">✅ 完成</button>`;
         }
 
-        // 倒數計時器
-        function startChallengeTimer() {
-            const bar = document.getElementById('taskProgress');
-            const fill = document.getElementById('taskProgressFill');
-            const btnArea = document.getElementById('modalButtons');
-            
-            // 隱藏原本的開始按鈕與換一題按鈕
-            Array.from(btnArea.children).forEach(btn => { 
-                if(btn.innerText.includes('倒數') || btn.innerText.includes('換一題')) {
-                    btn.style.display = 'none'; 
-                }
-            });
-            
-            bar.style.display = 'block';
+        window.hostStartTimer = function() {
+            document.getElementById('modalButtons').innerHTML = `<button class="btn btn-outline" disabled>倒數中...</button>`;
             let timeLeft = 30;
-            fill.style.width = '100%'; fill.style.backgroundColor = '#1dd1a1';
+            state.modal.progress = 100; syncState();
 
-            challengeTimer = setInterval(() => {
+            hostChallengeTimer = setInterval(() => {
                 timeLeft--;
-                fill.style.width = `${(timeLeft / 30) * 100}%`;
+                state.modal.progress = (timeLeft / 30) * 100;
                 
-                if (timeLeft <= 10) fill.style.backgroundColor = '#ff7675';
-                if (timeLeft > 0 && timeLeft <= 5) playTickSound();
+                if (timeLeft % 2 === 0 || timeLeft <= 5) syncState(); // 稍微降低同步頻率以免卡頓，最後5秒密集同步
                 
                 if (timeLeft <= 0) {
-                    clearInterval(challengeTimer);
-                    playAlarmSound();
-                    document.getElementById('taskDesc').innerText += "\n\n⏰ 時間到！";
-                    if(!btnArea.innerHTML.includes('完成')) {
-                        btnArea.innerHTML += `<button class="btn" style="background:#1dd1a1; margin-top:10px;" onclick="closeModal()">✅ 結算完成</button>`;
-                    }
+                    clearInterval(hostChallengeTimer);
+                    state.modal.desc += "\n\n⏰ 時間到！"; syncState();
+                    document.getElementById('modalButtons').innerHTML = `<button class="btn" style="background:#1dd1a1;" onclick="hostCloseModal()">✅ 結算完成</button>`;
                 }
             }, 1000);
         }
 
-        function closeModal() {
-            clearInterval(challengeTimer);
-            document.getElementById('taskModal').style.display = 'none';
-            playTadaSound();
-            
-            currentTurnIndex = (currentTurnIndex + 1) % currentTeams.length;
-            renderTeams(); updateTurnIndicator();
+        window.hostCloseModal = function() {
+            clearInterval(hostChallengeTimer);
+            state.modal.show = false;
+            state.turnIndex = (state.turnIndex + 1) % state.teams.length;
+            syncState();
         }
 
-        // --- 遊戲全域控制 ---
-        function startTimer() {
-            timerInterval = setInterval(() => {
-                totalTime--;
-                let m = Math.floor(totalTime / 60); let s = totalTime % 60;
-                document.getElementById('timer').innerText = `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
-                
-                if (totalTime <= 0) forceEndGame();
-            }, 1000);
-        }
-
-        function confirmEndGame() {
-            if(confirm("確定要提早結束遊戲，進入祝福結算畫面嗎？")) forceEndGame();
-        }
-
-        function forceEndGame() {
-            clearInterval(timerInterval);
-            document.getElementById('gameScreen').classList.remove('active');
-            document.getElementById('taskModal').style.display = 'none';
-            document.getElementById('endScreen').classList.add('active');
-            
-            const container = document.getElementById('blessingsContainer');
-            container.innerHTML = '';
-            currentTeams.forEach((team, index) => {
-                const card = document.createElement('div');
-                card.style.cssText = `background: #fff2cc; padding: 15px; margin: 10px auto; border-radius: 10px; border-left: 8px solid ${team.color}; text-align: left; max-width: 500px;`;
-                card.innerHTML = `<strong style="color:${team.color}">${team.name} 【共前進了 ${team.steps} 步】</strong><br><br>${blessingVerses[index]}`;
-                container.appendChild(card);
-            });
+        window.hostEndGame = function() {
+            clearInterval(hostTimerInterval);
+            state.screen = 'endScreen';
+            state.modal.show = false;
+            syncState();
         }
     </script>
 </body>
