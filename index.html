@@ -37,7 +37,6 @@
         .tile { background-color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; color: #636e72; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; padding: 2px; line-height: 1.2; }
         .tile-icon { font-size: 18px; display: block; margin-bottom: 2px; }
 
-        /* 棋盤定位 (18格環狀) */
         .tile[data-index="0"] { grid-column: 1; grid-row: 1; background: #ffeaa7; }
         .tile[data-index="1"] { grid-column: 2; grid-row: 1; } .tile[data-index="2"] { grid-column: 3; grid-row: 1; }
         .tile[data-index="3"] { grid-column: 4; grid-row: 1; } .tile[data-index="4"] { grid-column: 5; grid-row: 1; }
@@ -116,7 +115,7 @@
             </div>
             <div style="display: flex; gap: 10px; margin-top: 30px;">
                 <button class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('rulesModal').style.display='flex'">📖 規則</button>
-                <button class="btn" style="background-color: #1dd1a1; flex: 2;" onclick="initHostGame()">🚀 產生房間並開始</button>
+                <button class="btn" style="background-color: #1dd1a1; flex: 2;" onclick="window.initHostGame()">🚀 產生房間並開始</button>
             </div>
         </div>
     </div>
@@ -127,12 +126,12 @@
             <button class="icon-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
             <div class="status-box">⏳ <span id="timer">00:00</span></div>
             <div class="status-box" id="turnIndicator">準備開始</div>
-            <button class="btn host-only" style="background-color: #d63031; padding: 5px 15px; font-size:16px;" onclick="hostEndGame()">⏹ 提早結算</button>
+            <button class="btn host-only" style="background-color: #d63031; padding: 5px 15px; font-size:16px;" onclick="window.hostEndGame()">⏹ 提早結算</button>
         </div>
         <div class="game-area">
             <div class="board" id="board"></div>
             <div class="dice-container">
-                <button id="diceBtn" class="host-only" onclick="rollDice()">🎲</button>
+                <button id="diceBtn" class="host-only" onclick="window.rollDice()">🎲</button>
                 <div id="viewerDice" style="font-size: 50px; width: 100px; height: 100px; border-radius: 20px; background-color: #1dd1a1; display: none; align-items: center; justify-content: center; color: white; margin: 0 auto;">🎲</div>
             </div>
         </div>
@@ -143,7 +142,7 @@
         <h1 style="font-size: 36px; color: #1dd1a1;">🎉 美好的旅程 🎉</h1>
         <p>每一個家庭都是神美好的創造，這是一路上給你們的祝福：</p>
         <div id="blessingsContainer"></div>
-        <button class="btn host-only" style="margin-top:20px;" onclick="resetGameAndGoHome()">🔄 結束並回首頁</button>
+        <button class="btn host-only" style="margin-top:20px;" onclick="window.resetGameAndGoHome()">🔄 結束並回首頁</button>
     </div>
 
     <div id="taskModal" class="modal">
@@ -238,7 +237,6 @@
             "耶穌吩咐門徒要去使誰作祂的門徒？|萬民", "耶穌說我是真葡萄樹，你們是什麼？|枝子", "耶穌說凡勞苦擔重擔的人可以到祂那裡得什麼？|安息"
         ];
 
-        // 🌟 修正後的 10 題靠主剛強題庫
         const challengesData = [
             { type: "timer", name: "💪 靠主剛強", subtitle: "金句挑戰", desc: "【填空題 - 30秒挑戰】\n虛心的人有福了！因為____是他們的。\n清心的人有福了！因為他們必得見____。", answer: "天國 / 神" },
             { type: "timer", name: "💪 靠主剛強", subtitle: "金句挑戰", desc: "【填空題 - 30秒挑戰】\n喜樂的心乃是____；\n憂傷的靈使____枯乾。", answer: "良藥 / 骨頭" },
@@ -258,7 +256,6 @@
             "【小小見證】✨\n請小隊派出一名代表，分享近期最令你「感恩上帝」的一件見證（限時 1 分鐘）。"
         ];
 
-        // 洗牌機制
         let quizBag = []; let challengeBag = []; let miracleBag = [];
         function shuffle(array) {
             let currentIndex = array.length, randomIndex;
@@ -272,13 +269,127 @@
         function getNextChallenge() { if (challengeBag.length === 0) challengeBag = shuffle([...challengesData]); return challengeBag.pop(); }
         function getNextMiracle() { if (miracleBag.length === 0) miracleBag = shuffle([...miraclePromptsData]); return miracleBag.pop(); }
 
-        createBoard();
+        // --- 全域函數（解決按鈕失效問題） ---
+        window.hostSetMiracle = function() {
+            state.modal.title = "✨ 奇蹟時刻"; state.modal.color = "#feca57"; state.modal.desc = getNextMiracle();
+            state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#f39c12;" onclick="window.hostSetMiracle()">🔄 換一題</button> <button class="btn" onclick="window.hostCloseModal()">✅ 完成分享</button>`;
+            renderAll(); syncState();
+        }
 
-        // --- 全域按鈕事件定義 (解決換題卡卡問題的終極解法) ---
-        // 把所有的房主操作直接掛載到 window，並確保每一動都先 renderAll() 實現 Optimistic UI
-        window.hostReRollMiracle = function() { hostSetMiracle(); };
-        window.hostReRollQuiz = function() { hostSetQuiz(); };
-        window.hostReRollChallenge = function() { hostSetChallenge(); };
+        window.hostSetQuiz = function() {
+            const qString = getNextQuiz(); const [q, a] = qString.split('|');
+            state.modal.title = "📖 福音隨堂考"; state.modal.color = "#ff6b6b";
+            state.modal.desc = "【快問快答】\n" + q; state.modal.answer = a; state.modal.showAnswer = false;
+            state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#ff6b6b;" onclick="window.hostSetQuiz()">🔄 換一題</button> <button class="btn" style="background:#0984e3;" onclick="window.hostShowAnswer()">💡 顯示答案</button>`;
+            renderAll(); syncState();
+        }
+
+        window.hostSetChallenge = function() {
+            const chal = getNextChallenge();
+            state.modal.title = `${chal.name}｜${chal.subtitle}`; state.modal.color = "#54a0ff"; state.modal.answer = chal.answer || '';
+            
+            if (chal.type === "secret") {
+                state.modal.desc = `⚠️ 秘密任務：${chal.subtitle}\n【所有小朋友請先閉眼，讓大人看題目】`;
+                currentSecretDesc = chal.desc; // 這裡不重複標題了
+                state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="window.hostSetChallenge()">🔄 換一題</button>
+                                           <button class="btn" style="background:#8e44ad;" onclick="window.hostRevealSecret()">👀 小朋友閉眼了</button>`;
+            } else if (chal.type === "timer") {
+                state.modal.desc = chal.desc;
+                state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="window.hostSetChallenge()">🔄 換一題</button>
+                                           <button class="btn" style="background:#ff9f43;" onclick="window.hostStartTimer()">⏳ 開始 30 秒</button>`;
+                if(chal.answer) state.modal.buttonsHTML += `<button class="btn btn-outline" onclick="window.hostShowAnswer()">💡 答案</button>`;
+            } else {
+                state.modal.desc = chal.desc;
+                state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="window.hostSetChallenge()">🔄 換一題</button>
+                                           <button class="btn" onclick="window.hostCloseModal()">✅ 完成</button>`;
+            }
+            renderAll(); syncState();
+        }
+
+        window.hostRevealSecret = function() {
+            state.modal.desc = currentSecretDesc; 
+            state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="window.hostSetChallenge()">🔄 換一題</button>
+                                       <button class="btn" style="background:#e74c3c;" onclick="window.hostHideSecret()">🙈 記好了，開始計時</button>`;
+            renderAll(); syncState();
+        }
+
+        window.hostHideSecret = function() {
+            state.modal.desc = "【請小朋友張開眼睛猜題！】\n大人開始演出，小孩一起猜！";
+            state.modal.buttonsHTML = ""; 
+            renderAll(); window.hostStartTimer();
+        }
+
+        window.hostShowAnswer = function() {
+            state.modal.showAnswer = true; 
+            state.modal.buttonsHTML = `<button class="btn" style="background:#1dd1a1;" onclick="window.hostCloseModal()">✅ 完成</button>`;
+            renderAll(); syncState();
+        }
+
+        window.hostStartTimer = function() {
+            state.modal.showAnswer = false; 
+            state.modal.buttonsHTML = `<button class="btn" style="background:#1dd1a1;" onclick="window.hostCloseModal()">✅ 提前完成</button>`;
+            let timeLeft = 30; state.modal.progress = 100; 
+            renderAll(); syncState();
+
+            if(hostChallengeTimer) clearInterval(hostChallengeTimer);
+
+            hostChallengeTimer = setInterval(() => {
+                timeLeft--; state.modal.progress = (timeLeft / 30) * 100;
+                renderAll(); 
+                if (timeLeft % 2 === 0 || timeLeft <= 5) syncState(); 
+                
+                if (timeLeft <= 0) { 
+                    clearInterval(hostChallengeTimer); 
+                    state.modal.desc += "\n\n⏰ 時間到！"; 
+                    
+                    // 【修正重點】時間到自動亮牌！
+                    if(state.modal.answer && state.modal.answer !== "") {
+                        state.modal.showAnswer = true;
+                        document.getElementById('taskAnswer').style.display = 'block';
+                        document.getElementById('taskAnswer').innerText = "答案：" + state.modal.answer;
+                    }
+                    
+                    state.modal.buttonsHTML = `<button class="btn" style="background:#1dd1a1;" onclick="window.hostCloseModal()">✅ 結算完成</button>`;
+                    renderAll(); syncState(); 
+                }
+            }, 1000);
+        }
+
+        window.hostCloseModal = function() {
+            clearInterval(hostChallengeTimer); state.modal.show = false; state.turnIndex = (state.turnIndex + 1) % state.teams.length;
+            renderAll(); syncState(); playTone(659, 'triangle', 0.4);
+        }
+
+        window.hostEndGame = function() { clearInterval(hostTimerInterval); state.screen = 'endScreen'; state.modal.show = false; renderAll(); syncState(); }
+        window.resetGameAndGoHome = function() { sessionStorage.clear(); location.reload(); }
+        window.initHostGame = function() {
+            myRoomId = Math.floor(1000 + Math.random() * 9000).toString(); 
+            state.time = hostSettings.time * 60; state.teams = teamColors.slice(0, hostSettings.teams).map((t, i) => ({ ...t, id: i, pos: 0, steps: 0 }));
+            state.screen = 'gameScreen';
+            sessionStorage.setItem('roomId', myRoomId); sessionStorage.setItem('role', 'host');
+            syncState(); listenToRoom(myRoomId); startHostTimer(); 
+        }
+        window.rollDice = function() {
+            const btn = document.getElementById('diceBtn'); btn.disabled = true; let counter = 0;
+            const rollAnim = setInterval(() => {
+                state.diceValue = Math.floor(Math.random() * 6) + 1; playTone(600, 'square', 0.1); renderAll(); counter++;
+                if(counter > 8) {
+                    clearInterval(rollAnim); const steps = Math.floor(Math.random() * 6) + 1; state.diceValue = steps;
+                    const team = state.teams[state.turnIndex]; team.steps += steps; team.pos = (team.pos + steps) % boardSize;
+                    syncState(); setTimeout(() => { state.diceValue = '🎲'; btn.disabled = false; hostGenTask(team.pos); }, 1000);
+                }
+            }, 150);
+        }
+
+        function hostGenTask(pos) {
+            state.modal = { show: true, showAnswer: false, progress: 0, answer: '', buttonsHTML: '' };
+            if (pos === 0) {
+                state.modal.title = "🎉 休息一下"; state.modal.color = "#f39c12"; state.modal.desc = "平安抵達起點，享受安息日！";
+                state.modal.buttonsHTML = `<button class="btn" onclick="window.hostCloseModal()">✅ 完成</button>`; renderAll(); syncState();
+            } else if (pos % 4 === 0) { window.hostSetMiracle(); } else if (pos % 3 === 0) { window.hostSetChallenge(); } else { window.hostSetQuiz(); }
+        }
+
+        createBoard();
 
         window.onload = function() {
             const savedRoom = sessionStorage.getItem('roomId'); const savedRole = sessionStorage.getItem('role');
@@ -320,18 +431,10 @@
         function selectTime(btn, m) { document.querySelectorAll('#timeSelector .btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); hostSettings.time = m; }
         function selectTeamCount(btn, c) { document.querySelectorAll('#teamSelector .btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); hostSettings.teams = c; }
 
-        function initHostGame() {
-            myRoomId = Math.floor(1000 + Math.random() * 9000).toString(); 
-            state.time = hostSettings.time * 60; state.teams = teamColors.slice(0, hostSettings.teams).map((t, i) => ({ ...t, id: i, pos: 0, steps: 0 }));
-            state.screen = 'gameScreen';
-            sessionStorage.setItem('roomId', myRoomId); sessionStorage.setItem('role', 'host');
-            syncState(); listenToRoom(myRoomId); startHostTimer(); 
-        }
-
         function startHostTimer() {
             if(hostTimerInterval) clearInterval(hostTimerInterval);
             hostTimerInterval = setInterval(() => {
-                if(state.time > 0) { state.time--; if (state.time % 5 === 0) syncState(); renderTime(); if (state.time <= 0) hostEndGame(); }
+                if(state.time > 0) { state.time--; if (state.time % 5 === 0) syncState(); renderTime(); if (state.time <= 0) window.hostEndGame(); }
             }, 1000);
         }
 
@@ -416,119 +519,6 @@
         }
 
         function renderTime() { let m = Math.floor(state.time / 60); let s = state.time % 60; document.getElementById('timer').innerText = `${m<10?'0':''}${m}:${s<10?'0':''}${s}`; }
-
-        function rollDice() {
-            const btn = document.getElementById('diceBtn'); btn.disabled = true; let counter = 0;
-            const rollAnim = setInterval(() => {
-                state.diceValue = Math.floor(Math.random() * 6) + 1; playTone(600, 'square', 0.1); renderAll(); counter++;
-                if(counter > 8) {
-                    clearInterval(rollAnim); const steps = Math.floor(Math.random() * 6) + 1; state.diceValue = steps;
-                    const team = state.teams[state.turnIndex]; team.steps += steps; team.pos = (team.pos + steps) % boardSize;
-                    syncState(); setTimeout(() => { state.diceValue = '🎲'; btn.disabled = false; hostGenTask(team.pos); }, 1000);
-                }
-            }, 150);
-        }
-
-        function hostGenTask(pos) {
-            state.modal = { show: true, showAnswer: false, progress: 0, answer: '', buttonsHTML: '' };
-            if (pos === 0) {
-                state.modal.title = "🎉 休息一下"; state.modal.color = "#f39c12"; state.modal.desc = "平安抵達起點，享受安息日！";
-                state.modal.buttonsHTML = `<button class="btn" onclick="hostCloseModal()">✅ 完成</button>`; renderAll(); syncState();
-            } else if (pos % 4 === 0) { hostSetMiracle(); } else if (pos % 3 === 0) { hostSetChallenge(); } else { hostSetQuiz(); }
-        }
-
-        function hostSetMiracle() {
-            state.modal.title = "✨ 奇蹟時刻"; state.modal.color = "#feca57"; state.modal.desc = getNextMiracle();
-            state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#f39c12;" onclick="hostReRollMiracle()">🔄 換一題</button> <button class="btn" onclick="hostCloseModal()">✅ 完成分享</button>`;
-            renderAll(); syncState();
-        }
-
-        function hostSetQuiz() {
-            const qString = getNextQuiz(); const [q, a] = qString.split('|');
-            state.modal.title = "📖 福音隨堂考"; state.modal.color = "#ff6b6b";
-            state.modal.desc = "【快問快答】\n" + q; state.modal.answer = a; state.modal.showAnswer = false;
-            state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#ff6b6b;" onclick="hostReRollQuiz()">🔄 換一題</button> <button class="btn" style="background:#0984e3;" onclick="hostShowAnswer()">💡 顯示答案</button>`;
-            renderAll(); syncState();
-        }
-
-        function hostSetChallenge() {
-            const chal = getNextChallenge();
-            state.modal.title = `${chal.name}｜${chal.subtitle}`; state.modal.color = "#54a0ff"; state.modal.answer = chal.answer || '';
-            
-            // 🌟 修正重點：防暴雷與文字乾淨化
-            if (chal.type === "secret") {
-                state.modal.desc = `⚠️ 秘密任務：${chal.subtitle}\n【所有小朋友請先閉眼，讓大人看題目】`;
-                currentSecretDesc = chal.desc; // "【大人演，小孩猜】..." 這樣就不會重複了
-                state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="hostReRollChallenge()">🔄 換一題</button>
-                                           <button class="btn" style="background:#8e44ad;" onclick="hostRevealSecret()">👀 小朋友閉眼了</button>`;
-            } else if (chal.type === "timer") {
-                state.modal.desc = chal.desc;
-                state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="hostReRollChallenge()">🔄 換一題</button>
-                                           <button class="btn" style="background:#ff9f43;" onclick="hostStartTimer()">⏳ 開始 30 秒</button>`;
-                if(chal.answer) state.modal.buttonsHTML += `<button class="btn btn-outline" onclick="hostShowAnswer()">💡 答案</button>`;
-            } else {
-                state.modal.desc = chal.desc;
-                state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="hostReRollChallenge()">🔄 換一題</button>
-                                           <button class="btn" onclick="hostCloseModal()">✅ 完成</button>`;
-            }
-            renderAll(); syncState();
-        }
-
-        window.hostRevealSecret = function() {
-            state.modal.desc = currentSecretDesc; 
-            state.modal.buttonsHTML = `<button class="btn btn-outline" style="color:#54a0ff;" onclick="hostReRollChallenge()">🔄 換一題</button>
-                                       <button class="btn" style="background:#e74c3c;" onclick="hostHideSecret()">🙈 記好了，開始計時</button>`;
-            renderAll(); syncState();
-        }
-
-        window.hostHideSecret = function() {
-            state.modal.desc = "【請小朋友張開眼睛猜題！】\n大人開始演出，小孩一起猜！";
-            state.modal.buttonsHTML = ""; 
-            renderAll(); hostStartTimer();
-        }
-
-        window.hostShowAnswer = function() {
-            state.modal.showAnswer = true; 
-            state.modal.buttonsHTML = `<button class="btn" style="background:#1dd1a1;" onclick="hostCloseModal()">✅ 完成</button>`;
-            renderAll(); syncState();
-        }
-
-        // 🌟 修正重點：時間到自動翻開答案
-        window.hostStartTimer = function() {
-            state.modal.showAnswer = false; 
-            state.modal.buttonsHTML = `<button class="btn" style="background:#1dd1a1;" onclick="hostCloseModal()">✅ 提前完成</button>`;
-            let timeLeft = 30; state.modal.progress = 100; 
-            renderAll(); syncState();
-
-            // 關閉之前可能重複執行的計時器
-            if(hostChallengeTimer) clearInterval(hostChallengeTimer);
-
-            hostChallengeTimer = setInterval(() => {
-                timeLeft--; state.modal.progress = (timeLeft / 30) * 100;
-                renderAll(); 
-                if (timeLeft % 2 === 0 || timeLeft <= 5) syncState(); 
-                
-                if (timeLeft <= 0) { 
-                    clearInterval(hostChallengeTimer); 
-                    state.modal.desc += "\n\n⏰ 時間到！"; 
-                    
-                    // 關鍵！如果這題有答案，時間到就強制顯示
-                    if(state.modal.answer) {
-                        state.modal.showAnswer = true;
-                    }
-                    
-                    state.modal.buttonsHTML = `<button class="btn" style="background:#1dd1a1;" onclick="hostCloseModal()">✅ 結算完成</button>`;
-                    renderAll(); syncState(); 
-                }
-            }, 1000);
-        }
-
-        window.hostCloseModal = function() {
-            clearInterval(hostChallengeTimer); state.modal.show = false; state.turnIndex = (state.turnIndex + 1) % state.teams.length;
-            renderAll(); syncState(); playTone(659, 'triangle', 0.4);
-        }
-        window.hostEndGame = function() { clearInterval(hostTimerInterval); state.screen = 'endScreen'; state.modal.show = false; renderAll(); syncState(); }
-        window.resetGameAndGoHome = function() { sessionStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
