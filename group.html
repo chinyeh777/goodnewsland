@@ -79,7 +79,7 @@
             container.innerHTML = htmlStr;
         }
 
-        function startGrouping() {
+       function startGrouping() {
             const groupCount = parseInt(document.getElementById('groupCount').value);
             const checkboxes = document.querySelectorAll('.family-checkbox:checked');
             
@@ -98,40 +98,49 @@
                 return;
             }
 
-            // --- 核心演算法開始 ---
+            // --- 升級版演算法：兩階段分發法 ---
             
-            // 1. 計算每個家庭的「負擔分數」
-            presentFamilies.forEach(fam => {
-                // 幼童極度消耗戰力(+100)，大童中度消耗(+10)，大人提供戰力(-5)
-                fam.burdenScore = (fam.toddlers * 100) + (fam.olderKids * 10) - (fam.adults * 5);
-            });
-            
-            // 2. 依照負擔分數由重到輕排序（先安頓最難顧的家庭）
-            presentFamilies.sort((a, b) => b.burdenScore - a.burdenScore);
-
-            // 3. 初始化隊伍
+            // 0. 初始化隊伍
             let groups = Array.from({ length: groupCount }, () => ({
-                families: [],
-                totalAdults: 0,
-                totalToddlers: 0,
-                totalOlderKids: 0,
-                currentBurden: 0
+                families: [], totalAdults: 0, totalToddlers: 0, totalOlderKids: 0
             }));
 
-            // 4. 貪婪分配：把每個家庭丟進當下「負擔最輕」的隊伍
-            presentFamilies.forEach(fam => {
-                // 找出目前 currentBurden 最低的隊伍
-                groups.sort((a, b) => a.currentBurden - b.currentBurden);
-                
-                let targetGroup = groups[0];
-                targetGroup.families.push(fam.name);
-                targetGroup.totalAdults += fam.adults;
-                targetGroup.totalToddlers += fam.toddlers;
-                targetGroup.totalOlderKids += fam.olderKids;
-                targetGroup.currentBurden += fam.burdenScore;
+            function addToGroup(group, fam) {
+                group.families.push(fam.name);
+                group.totalAdults += fam.adults;
+                group.totalToddlers += fam.toddlers;
+                group.totalOlderKids += fam.olderKids;
+            }
+
+            // 1. 將家庭分為「有幼童」與「無幼童」兩組
+            let toddlerFamilies = presentFamilies.filter(f => f.toddlers > 0);
+            let otherFamilies = presentFamilies.filter(f => f.toddlers === 0);
+
+            // 2. 幼童組：依照幼童數量由多到少排序（最難顧的先排）
+            toddlerFamilies.sort((a, b) => b.toddlers - a.toddlers);
+            
+            // 3. 第一階段發牌：將幼童家庭分配給「目前幼童最少」的隊伍
+            toddlerFamilies.forEach(fam => {
+                groups.sort((a, b) => a.totalToddlers - b.totalToddlers);
+                addToGroup(groups[0], fam);
             });
 
-            // --- 核心演算法結束 ---
+            // 4. 無幼童組：依照大人數量由多到少排序（2個大人的先分，1個大人的最後補）
+            otherFamilies.sort((a, b) => b.adults - a.adults);
+
+            // 5. 第二階段發牌：將剩下的家庭分配給「目前大人最少」的隊伍
+            otherFamilies.forEach(fam => {
+                // 優先找大人最少的；如果大人一樣多，就找家庭數最少的
+                groups.sort((a, b) => {
+                    if (a.totalAdults !== b.totalAdults) {
+                        return a.totalAdults - b.totalAdults;
+                    }
+                    return a.families.length - b.families.length;
+                });
+                addToGroup(groups[0], fam);
+            });
+
+            // --- 演算法結束 ---
 
             renderResults(groups);
         }
