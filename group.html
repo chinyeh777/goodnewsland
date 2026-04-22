@@ -5,38 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>家庭小組智慧分組系統</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
-        .card { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
-        .family-item { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 700px; margin: 2rem auto; padding: 0 1rem; color: #333; }
+        .card { border: 1px solid #ddd; padding: 1.5rem; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .family-item { display: flex; align-items: center; margin-bottom: 0.5rem; padding: 5px; background: #f9f9f9; border-radius: 4px; }
         .family-item input { margin-right: 10px; transform: scale(1.2); }
-        .btn { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .btn { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1.1rem; font-weight: bold; width: 100%; transition: 0.2s; }
         .btn:hover { background-color: #0056b3; }
-        .settings { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .settings { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        
+        /* 分組結果卡片樣式 */
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .team-card { border: 2px solid #4CAF50; border-radius: 8px; overflow: hidden; }
+        .team-header { background-color: #4CAF50; color: white; padding: 10px; font-weight: bold; text-align: center; }
+        .team-body { padding: 10px; font-size: 0.9rem; }
+        .team-stats { background: #e8f5e9; padding: 8px; margin-top: 10px; border-radius: 4px; font-size: 0.85rem; color: #2e7d32; text-align: center;}
     </style>
 </head>
 <body>
 
-    <h2>👨‍👩‍👧‍👦 家庭小組智慧分組系統</h2>
+    <h2>👨‍👩‍👧‍👦 智慧分組系統</h2>
 
-    <div class="settings card">
-        <label for="groupCount">預計分成幾隊：</label>
-        <input type="number" id="groupCount" min="2" max="10" value="3" style="width: 50px; text-align: center;">
-        <button class="btn" onclick="startGrouping()">開始智慧分組</button>
+    <div class="card settings">
+        <div>
+            <label for="groupCount" style="font-weight: bold;">🎯 預計分成幾隊：</label>
+            <input type="number" id="groupCount" min="2" max="10" value="3" style="width: 60px; padding: 5px; font-size: 1rem; text-align: center;">
+        </div>
+        <button class="btn" style="width: auto;" onclick="startGrouping()">⚡ 開始智慧分組</button>
     </div>
 
     <div class="card">
-        <h3>✅ 今日出席點名</h3>
-        <div id="loading">載入名單中，請稍候...</div>
+        <h3 style="margin-top: 0;">✅ 今日出席點名</h3>
+        <div id="loading" style="color: #666;">載入名單中，請稍候...</div>
         <div id="familyListContainer"></div>
     </div>
 
+    <div id="resultSection" style="display: none;">
+        <h3>🎉 分組結果</h3>
+        <div id="resultContainer" class="result-grid"></div>
+    </div>
+
     <script>
-        // 【請將下方的 URL 替換成你剛剛發布的 GAS 網頁應用程式網址】
+        // 【請替換成你的 GAS Web App URL】
         const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxjhDzhIXnNEwqfKOG_aTrTfnRmJhrpBZkZsz7Em54JFLf1Adi3iv1YNGgU5eZ93aTXxg/exec';
-        
         let globalFamilyData = [];
 
-        // 網頁載入時自動去 Google Sheets 抓資料
         window.onload = async function() {
             try {
                 const response = await fetch(GAS_API_URL);
@@ -44,46 +56,113 @@
                 renderFamilyList(globalFamilyData);
             } catch (error) {
                 document.getElementById('loading').innerText = "載入失敗，請檢查 API 網址是否正確。";
-                console.error("Error fetching data:", error);
             }
         };
 
-        // 將抓回來的資料渲染成 checkbox 列表
         function renderFamilyList(data) {
             const container = document.getElementById('familyListContainer');
             document.getElementById('loading').style.display = 'none';
             
-            if (data.length === 0) {
-                container.innerHTML = "<p>試算表中目前沒有資料。</p>";
-                return;
-            }
+            if (data.length === 0) return container.innerHTML = "<p>無資料</p>";
 
             let htmlStr = '';
             data.forEach((family, index) => {
+                // 排除空列
+                if(!family.familyName) return; 
                 htmlStr += `
                     <label class="family-item">
                         <input type="checkbox" class="family-checkbox" value="${index}" checked>
-                        <span>${family.familyName} (大人: ${family.adults}, 幼童: ${family.toddlers}, 大童: ${family.olderKids})</span>
+                        <span>${family.familyName} <small style="color:#666;">(大:${family.adults} | 幼:${family.toddlers} | 童:${family.olderKids})</small></span>
                     </label>
                 `;
             });
             container.innerHTML = htmlStr;
         }
 
-        // 點擊分組按鈕時觸發的函式（下一階段在此實作演算法）
         function startGrouping() {
             const groupCount = parseInt(document.getElementById('groupCount').value);
             const checkboxes = document.querySelectorAll('.family-checkbox:checked');
             
-            // 整理出今天有出席的家庭名單
-            const presentFamilies = Array.from(checkboxes).map(cb => globalFamilyData[cb.value]);
+            let presentFamilies = Array.from(checkboxes).map(cb => {
+                let fam = globalFamilyData[cb.value];
+                return {
+                    name: fam.familyName,
+                    adults: parseInt(fam.adults) || 0,
+                    toddlers: parseInt(fam.toddlers) || 0,
+                    olderKids: parseInt(fam.olderKids) || 0
+                };
+            });
+
+            if (presentFamilies.length < groupCount) {
+                alert("出席家庭數量少於預計分組數！");
+                return;
+            }
+
+            // --- 核心演算法開始 ---
             
-            console.log(`準備將 ${presentFamilies.length} 個家庭分成 ${groupCount} 隊...`);
-            console.log("今日出席名單：", presentFamilies);
+            // 1. 計算每個家庭的「負擔分數」
+            presentFamilies.forEach(fam => {
+                // 幼童極度消耗戰力(+100)，大童中度消耗(+10)，大人提供戰力(-5)
+                fam.burdenScore = (fam.toddlers * 100) + (fam.olderKids * 10) - (fam.adults * 5);
+            });
             
-            alert('名單已抓取並顯示在 Console 中！下一步我們將實作演算法。');
+            // 2. 依照負擔分數由重到輕排序（先安頓最難顧的家庭）
+            presentFamilies.sort((a, b) => b.burdenScore - a.burdenScore);
+
+            // 3. 初始化隊伍
+            let groups = Array.from({ length: groupCount }, () => ({
+                families: [],
+                totalAdults: 0,
+                totalToddlers: 0,
+                totalOlderKids: 0,
+                currentBurden: 0
+            }));
+
+            // 4. 貪婪分配：把每個家庭丟進當下「負擔最輕」的隊伍
+            presentFamilies.forEach(fam => {
+                // 找出目前 currentBurden 最低的隊伍
+                groups.sort((a, b) => a.currentBurden - b.currentBurden);
+                
+                let targetGroup = groups[0];
+                targetGroup.families.push(fam.name);
+                targetGroup.totalAdults += fam.adults;
+                targetGroup.totalToddlers += fam.toddlers;
+                targetGroup.totalOlderKids += fam.olderKids;
+                targetGroup.currentBurden += fam.burdenScore;
+            });
+
+            // --- 核心演算法結束 ---
+
+            renderResults(groups);
+        }
+
+        function renderResults(groups) {
+            const resultSection = document.getElementById('resultSection');
+            const resultContainer = document.getElementById('resultContainer');
+            resultSection.style.display = 'block';
+            
+            let htmlStr = '';
+            groups.forEach((group, index) => {
+                htmlStr += `
+                    <div class="team-card">
+                        <div class="team-header">第 ${index + 1} 隊</div>
+                        <div class="team-body">
+                            <ul style="margin:0; padding-left:20px; line-height: 1.6;">
+                                ${group.families.map(name => `<li>${name}</li>`).join('')}
+                            </ul>
+                            <div class="team-stats">
+                                🧑 大人: ${group.totalAdults} <br>
+                                👶 幼童: ${group.totalToddlers} | 👦 大童: ${group.totalOlderKids}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            resultContainer.innerHTML = htmlStr;
+
+            // 畫面自動往下捲動到結果區
+            resultSection.scrollIntoView({ behavior: 'smooth' });
         }
     </script>
-
 </body>
 </html>
